@@ -548,3 +548,36 @@ matrixFactorization = function(R, K = 2, steps = 5000, alpha = 0.0002, beta = 0.
 	}
 	return(P %*% Q)
 }
+
+# # == Function to calculate similarity measures == # #
+# # Parameters
+# ob1 = object 1
+# ob2 = object 2
+# measure = measure that you want to use for calculating similarity [euc, jac, cos, pearson, man]
+# # where:
+# # # euc = euclidean distance [lesser the better]
+# # # jac = jaccard distance [lesser the better]
+# # # man = manhattan distance [lesser the better]
+# # # cos = cosine similiarity measure [more the better (-1 to 1)]
+# # # pearson = pearsons correlation coefficient [more the better (-1 to 1)]
+similarityMeasure = function(ob1, ob2, measure = "pearson") {
+	if(measure == "euc") { # euclidean distance - lesser the better
+		return(sqrt(sum((ob1 - ob2)^2)))
+	} else if(measure == "jac") { # jaccard distance - lesser the better
+		# # intersect(ob1, ob2)/union(ob1, ob2) - Hamming score
+		ob1 = which(ob1 != 0)
+		ob2 = which(ob2 != 0)
+		return(length(intersect(ob1, ob2))/ length(union(ob1, ob2)))
+	} else if(measure == "man") { # manhattan distance - lesser the better
+		return(sum(abs(a - b)))
+	} else if(measure == "cos") { # cosine similarity measure
+		numerator = sum(ob1 * ob2)
+		denominator = sqrt(sum(ob1 * ob1)) * sqrt(sum(ob2 * ob2))
+		return(numerator/denominator)
+	} else if(measure == "pearson") { # pearsons correlation coefficient
+		# cosine - mean
+		ob1 = ob1 - mean(ob1)
+		ob2 = ob2 - mean(ob2)
+		return(similarityMeasure(ob1, ob2, measure = "cos"))
+	}
+}
