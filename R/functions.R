@@ -1,4 +1,4 @@
-# # Functions for
+# # Functions to add
 # concordance
 # roc
 # lift, gain
@@ -382,6 +382,12 @@ performance = function(predicted, original, beta = 1, format = "dataframe", prob
 	}
 	if(length(unique(predicted)) > 2) {
 		predicted = as.numeric(predicted >= cutoff)
+	}
+	if(is.factor(predicted)) {
+		predicted = as.numeric(as.character(predicted))
+	}
+	if(is.factor(original)) {
+		original = as.numeric(as.character(original))
 	}
 	tp = length(which(predicted == 1 & original == 1))
 	tn = length(which(predicted == 0 & original == 0))
