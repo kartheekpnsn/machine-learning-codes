@@ -1,3 +1,4 @@
+# # Requirements - matplotlib # #
 # # Loss function = x^2 # #
 # # minimize the los
 def loss(x):
@@ -56,16 +57,19 @@ x = range(1, 11)
 y = yEQ(x, theta0 = 3, theta1 = 2) # [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 theta0 = 0
 theta1 = 0
+plot = True
 for i in range(10000):
 	print "ITERATION - " + str(i)
 	yhat = yEQ(x, theta0, theta1)
-	if i%1000 == 0:
-		plot(x, y, x, yhat, m = theta1, c = theta0)
+	if plot:
+		if i%1000 == 0:
+			plot(x, y, x, yhat, m = theta1, c = theta0)
 	if loss(y, yhat) <= threshold:
 		print "== ENDED at " + str(i) + " =="
 		print theta0, theta1
 		print loss(y, yhat)
-		plot(x, y, x, yhat, m = theta1, c = theta0, text = "Iterations ended at = " + str(i) + ", with loss = " + str(loss(y, yhat)))
+		if plot:
+			plot(x, y, x, yhat, m = theta1, c = theta0, text = "Iterations ended at = " + str(i) + ", with loss = " + str(loss(y, yhat)))
 		break;
 	print "For " + str(theta0) + " & " + str(theta1) + ": Loss is " + str(loss(y, yhat))
 	theta0 = round(theta0 - alpha * derivative1(y, yhat), 4)
