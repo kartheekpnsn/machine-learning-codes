@@ -46,23 +46,24 @@ def plot(oX, oY, pX, pY, slope, y_intercept, text = ""):
 	fig, (ax1, ax2) = plt.subplots(1, 2)
 	ax1.plot(oX, oY, "o")
 	ax1.plot(pX, pY, 'k-', lw = 2)
-	ax1.set_xlim([0, 12])
-	ax1.set_ylim([-5, 30])
+	ax1.set_xlim([min(oX) - 3, max(oX) + 3])
+	ax1.set_ylim([min(oY) - 5, max(oY) + 5])
 	if text != "":
-		ax1.annotate(text, xy=(1, 27), xytext=(1, 27))
-	ax1.annotate('slope = ' + str(slope[-1]) + ', intercept = ' + str(y_intercept[-1]), xy=(2, 1), xytext=(3, 1.5))
+		ax1.annotate(text, xy=(min(oX), max(oY) - 2), xytext=(min(oX), max(oY) - 2))
+	ax1.annotate('slope = ' + str(slope[-1]) + ', intercept = ' + str(y_intercept[-1]), xy=(min(oX) + 1, min(oY) + 1), xytext=(min(oX) + 1, min(oY) + 1))
 
 	# # plot 2nd plot
+	ax2.plot(slope, y_intercept, "o")
 	ax2.plot(slope, y_intercept, 'k-', lw = 2)
-	ax2.set_xlim([0, 10])
-	ax2.set_ylim([0, 10])
+	ax2.set_xlim([min(slope) - 3, max(slope) + 3])
+	ax2.set_ylim([min(y_intercept) - 5, max(y_intercept) + 5])
 	plt.show()
 
 
 alpha = 0.01
 threshold = 0.0001
 # let y = 3 + 2x (theta0 + theta1 * x)
-x = range(1, 11)
+x = range(1, 10)
 y = yEQ(x, theta0 = 3, theta1 = 2) # [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 
 # # initialize values
