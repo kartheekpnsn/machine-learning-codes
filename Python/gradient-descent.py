@@ -37,6 +37,18 @@ def derivative2(y, yhat, x):
 	return(d)
 def yEQ(x, theta0, theta1):
 	return [(theta0 + (i * theta1)) for i in x]
+
+def plot(oX, oY, pX, pY, m, c, text = ""):
+	import matplotlib.pyplot as plt
+	line = plt.figure()
+	plt.plot(oX, oY, "o")
+	plt.plot(pX, pY, 'k-', lw = 2)
+	plt.axis((0, 12, -5, 30))
+	if text != "":
+		plt.annotate(text, xy=(1, 27), xytext=(1, 27))
+	plt.annotate('slope = ' + str(m) + ', c = ' + str(c), xy=(2, 1), xytext=(3, 1.5))
+	plt.show()
+
 alpha = 0.01
 threshold = 0.0001
 # let y = 3 + 2x (theta0 + theta1 * x)
@@ -47,10 +59,13 @@ theta1 = 0
 for i in range(10000):
 	print "ITERATION - " + str(i)
 	yhat = yEQ(x, theta0, theta1)
+	if i%1000 == 0:
+		plot(x, y, x, yhat, m = theta1, c = theta0)
 	if loss(y, yhat) <= threshold:
 		print "== ENDED at " + str(i) + " =="
 		print theta0, theta1
 		print loss(y, yhat)
+		plot(x, y, x, yhat, m = theta1, c = theta0, text = "Iterations ended at = " + str(i) + ", with loss = " + str(loss(y, yhat)))
 		break;
 	print "For " + str(theta0) + " & " + str(theta1) + ": Loss is " + str(loss(y, yhat))
 	theta0 = round(theta0 - alpha * derivative1(y, yhat), 4)
