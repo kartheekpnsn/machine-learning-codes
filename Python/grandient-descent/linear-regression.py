@@ -73,8 +73,8 @@ for i in range(10000):
 		print "=============================================================================="
 		print "=============================================================================="
 		print "== Converged at " + str(i) + " =="
-		print "- Slopes = " + ",".join([str(k) for k in slopes])
-		print "- Intercept = " + str(intercept)
+		print "- Slopes = " + str(theta1)
+		print "- Intercept = " + str(theta0)
 		print "- Y values = " + ", ".join([str(k) for k in y])
 		print "- Yhat values = " + ", ".join([str(k) for k in yhat])
 		print "- Loss = " + str(loss(y, yhat))
