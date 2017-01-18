@@ -587,3 +587,24 @@ similarityMeasure = function(ob1, ob2, measure = "pearson") {
 		return(similarityMeasure(ob1, ob2, measure = "cos"))
 	}
 }
+		
+# # == Function to calculate SVM loss from the classification == # #
+# # Parameters
+# scores = scores obtained out of a classification model
+# class = index of the original class value (i.e. if there are two classes 'Y' and 'N' and the data point is having 'Y' then class will be 1)
+svmLoss = function(scores, class) {
+	sum(sapply(scores[-class]-scores[class]+1, function(x) max(0, x)))
+}
+
+# # == Function to calculate Entropy/Log loss from the classification == # #
+# # Parameters
+# scores = scores obtained out of a classification model
+# class = index of the original class value (i.e. if there are two classes 'Y' and 'N' and the data point is having 'Y' then class will be 1)
+# prob = flag that says if scores are probabilities or not
+logLoss = function(scores, class, prob = TRUE) {
+	if(prob) {
+		-log10(scores)[class]
+	} else {
+		-log10(exp(scores)/sum(exp(scores)))[class]
+	}
+}
