@@ -617,3 +617,34 @@ logLoss = function(scores, class, prob = TRUE) {
 min_max_norm = function(series, new_min, new_max) {
 	(((series - min(series))/(max(series) - min(series))) * (new_max - new_min)) + new_min
 }
+
+# # == Function to calculate the error measure for the prediction == # #
+# # Parameters
+# original = actual values
+# predicted = predicted/forecasted values (for classification it needs to be rounded off)
+# loss = the loss function that needs to be calculated
+	# "rmse" = root mean squared error
+	# "mse" = mean squared error
+	# "mape" = mean absolute percentage error
+	# "mae" = mean absolute error
+	# "logistic" = logistic loss function 
+error_measure = function(original, predicted, loss = "rmse") {
+	if(loss == "mse") {
+		return(sum((original - predicted)^2)/length(original))
+	} else if(loss == "rmse") {
+		return(sqrt(sum((original - predicted)^2)/length(original)))
+	} else if(loss == "mape") {
+		term1 = abs(original - predicted)
+		term2 = abs(term1 / original)
+		term3 = (100/length(original)) * sum(term2)
+		return(term3)
+	} else if(loss == "mae") {
+		return(sum(abs(original - predicted))/length(original))
+	} else if(loss == "logistic") {
+		term1 = original * log(predicted)
+		term2 = (1 - original) * log((1 - predicted))
+		term3 = sum(term1 + term2)
+		term4 = - term3 * (1 / length(original))
+		return(term4)
+	}
+}
