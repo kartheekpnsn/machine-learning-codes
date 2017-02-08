@@ -608,3 +608,12 @@ logLoss = function(scores, class, prob = TRUE) {
 		-log10(exp(scores)/sum(exp(scores)))[class]
 	}
 }
+
+# # == Function to do min max normalization == # #
+# # Parameters
+# series = a vector of numbers that needs to be scaled
+# new_min = a minimum value that the new series should have
+# new_max = a maximum value that the new series should have
+min_max_norm = function(series, new_min, new_max) {
+	(((series - min(series))/(max(series) - min(series))) * (new_max - new_min)) + new_min
+}
