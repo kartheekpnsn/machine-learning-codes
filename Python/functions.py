@@ -1,30 +1,30 @@
 from math import *
 import pandas as pd
-import random
+import numpy as np
 
-# df = pd.DataFrame({'a' : range(10), 'b' : range(1,11), 'c': [round(random.random())for i in range(10)]})
+def createDataPartition(target, p = 0.75, valid = False):
+    import numpy as np
+    if not isinstance(target, np.ndarray):
+        target = np.array(target)
+    u_classes = np.unique(target)        
+    n_classes = len(u_classes)
+    index = []
+    for eachClass in u_classes:
+        i = np.where(target == eachClass)[0]
+        np.random.shuffle(i)
+        i = i[:int(round(len(i) * p))]
+        index.extend(i.tolist())
+    index = np.array(index)
+    np.random.shuffle(index)
+    conv_int = np.vectorize(lambda x : int(x))
+    train_index = conv_int(index)
+    test_index = np.array(list(set(range(len(target))) - set(train_index)))
+    return train_index, test_index
 
-def createDataPartition(df, p = 0.75, target = 'Y', rand_flag = True):
-	import numpy as np
-	import random
-	ones = sum([1 for i in df[target] if i == 1])
-	zeroes = len(df[target]) - ones
-	train_ones = int(round(ones * p))
-	train_zeroes = int(round(zeroes * p))
-	ones = df[df[target] == 1]
-	zeroes = df[df[target] == 0]
-	if rand_flag:
-		ones = ones.reindex(np.random.permutation(ones.index))
-		zeroes = zeroes.reindex(np.random.permutation(zeroes.index))
-	train = list(ones[:train_ones].index) + list(zeroes[:train_zeroes].index)
-	random.shuffle(train)
-	return train
-
-# index = createDataPartition(df, p = 0.5, target = 'c')
-# train = df.iloc[[i for i in index]]
-# test = df.iloc[[i for i in df.index if i not in index]]
-
-
+# df = pd.DataFrame({'a' : range(100), 'b' : np.random.random(100), 'c': np.round(np.random.random(100))})
+# train_index, test_index = createDataPartition(df.c)
+# print df.loc[train_index].shape
+# print df.loc[test_index].shape
 
 # # == Function to calculate similarity measures == # #
 # # Parameters
