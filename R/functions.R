@@ -217,6 +217,51 @@ similarityMeasure = function(ob1, ob2, measure = "pearson") {
 min_max_norm = function(series, new_min, new_max) {
 	(((series - min(series))/(max(series) - min(series))) * (new_max - new_min)) + new_min
 }
+		
+# # == Function to do class balancing == # #
+# # Parameters
+# data = data that is to be balanced
+# target = depedent value based on which the data is to be balanced
+# type = type of balancing to be done (either over/under/cost sensitive learning)
+# seed = to ensure reproducability
+balanceClasses = function(data, target = 'Y', type = 'over', seed = 294056) {
+	if(target != 'Y') {
+		colnames(data)[which(colnames(data) == target)] = 'Y'
+	}
+	if("ROSE" %in% rownames(installed.packages()) == FALSE) {
+		install.packages("ROSE", repos = "http://cran.us.r-project.org/")
+	}
+	library(ROSE)
+	n_class_values = table(data$Y)
+	n_classes = length(n_class_values)
+	if(type == 'over') {
+		# # oversampling 
+		balanced = ovun.sample(Y ~ ., 
+			data = data, 
+			method = "over", 
+			N = round(max(n_class_values) + sum(max(n_class_values) * runif((n_classes - 1), 0.5, 0.8))), 
+			seed = seed)$data
+	} else if(type == 'under') {
+		# # under sampling
+		balanced = ovun.sample(Y ~ .,
+			data = data,
+			method = "under", 
+			N = round(min(n_class_values) + sum(min(n_class_values) * runif((n_classes - 1), 1.2, 1.5))),
+			seed = seed)$data
+	} else if(type == 'csl') {
+		# # cost sensitive learning
+		balanced = ROSE(Y ~ ., 
+			data = data,
+			seed = seed)$data
+	} else {
+		cat("Use type as one of the following: 'over', 'under', 'csl'\n")
+		cat("'over'\t:\tdoes oversampling\n")
+		cat("'under'\t:\tdoes undersampling\n")
+		cat("'csl'\t:\tdoes cost sensitive learning\n")
+		stop()
+	}
+	return(balanced)
+} 
 
 # # == Function to calculate the error measure for the prediction == # #
 # # Parameters
