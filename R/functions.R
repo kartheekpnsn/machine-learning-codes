@@ -293,3 +293,173 @@ error_measure = function(original, predicted, loss = "rmse") {
 		return(term4)
 	}
 }
+
+# # == Function to do a data splitting into train, test and validation sets == # #
+# # Parameters
+# target = the original target values based on which the split to happen
+# split_ratio = ratio of split of the data
+# seed = for reproducability
+dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056) {
+	set.seed(seed)
+	if(sum(split_ratio) == 1) {
+		stop('Sum of split_ratio should be less than 1')
+	}
+	u_classes = unique(target)
+	index = list()
+	index = c(index, rep(1, length(split_ratio) + 1))
+	for(eachClass in u_classes) {
+		temp_index = which(target == eachClass)
+		temp_index = sample(temp_index)
+		lengths = cumsum(round(length(temp_index) * split_ratio))
+		lengths = c(0, lengths, length(temp_index))
+		for(each in 1:(length(lengths)-1)) {
+			index[[each]] = c(index[[each]], temp_index[(lengths[each] + 1) : lengths[each + 1]])
+		}
+	}
+	index = lapply(index, function(x) x[2:length(x)])
+	if(length(split_ratio) + 1 == 3) {
+		names(index) = c('train', 'valid', 'test')
+	} else if(length(split_ratio) + 1 == 2) {
+		names(index) = c('train', 'test')
+	}
+	return(index)
+}
+
+# # == Function to calculate the performance measures for the prediction == # #
+# # Parameters
+# actual = actual values
+# predicted = predicted probability values
+# metric = what performance metric needs to be calculated
+# optimal_threshold = whether to calculate the optimal threshold or not
+# regression = flag indicating whether it is a regression problem or not
+# plotROC_flag = flag indicating whether to plot ROC flag or not
+performance = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = TRUE, regression = FALSE, plotROC_flag = FALSE) {
+	if(length(predicted) != length(actual)) {
+		stop('> Length of Predicted and Actual not matching')
+	}
+	if(regression) {
+		mae = sum(abs(predicted - actual))/length(actual)
+		mse = sum((predicted - actual) ** 2)/length(actual)
+		rmse = sqrt(mse)
+		if(metric == 'rmse') {
+			return(rmse)
+		} else if(metric == 'mse') {
+			return(mse)
+		} else if (metric == 'mae') {
+			return(mae)
+		} else if(metric == 'all') {
+			return(data.table(mae = mae, mse = mse, rmse = rmse))
+		} else {
+			stop('> For regression use metric as "rmse" (or) "mse" (or) "mae" (or) "all"')
+		}
+
+	} else {
+		actual = as.numeric(as.factor(actual)) - 1
+		if(plotROC_flag) {
+			plotROC(actuals = actual, predictedScores = predicted)
+		}
+		if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
+			install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
+		}
+		if("ROCR" %in% rownames(installed.packages()) == FALSE) {
+			install.packages("ROCR", repos = "http://cran.us.r-project.org/")
+		}
+		library(ROCR)
+		library(InformationValue)
+		if(optimal_threshold) {
+			threshold = optimalCutoff(predictedScores = predicted, actuals = actual, optimiseFor = 'Both')
+			print(paste('> Threshold chosen:', threshold))
+		}
+		predicted_probabilities = predicted
+		predicted = as.numeric(predicted >= threshold)
+		accuracy = sum(predicted == actual)/length(actual)
+		error = 1 - accuracy
+		precision = precision(predictedScores = predicted, actuals = actual)
+		recall = sensitivity(predictedScores = predicted, actuals = actual)
+		fscore = ((1 + (beta ** 2)) * precision * recall)/(((1 + (beta ** 2)) * precision) + recall)
+		mse = sum((predicted_probabilities - actual) ** 2)/length(actual)
+		mae = sum(abs(predicted_probabilities - actual))/length(actual)
+		rmse = sqrt(mse)
+		auc = performance(prediction(predict(predicted_probabilities, actual), "auc")
+		auc = auc@y.values[[1]]
+		concordance = Concordance(actuals = actual, predictedScores = predicted)
+		logloss = - sum((actual * log(predicted_probabilities)) + ((1 - actual) * log((1 - predicted_probabilities))))/length(actual)
+		if(metric == 'accuracy') {
+			return(accuracy)
+		} else if(metric == 'precision') {
+			return(precision)
+		} else if(metric == 'recall') {
+			return(recall)
+		} else if(metric == 'fscore') {
+			return(fscore)
+		} else if(metric == 'rmse') {
+			return(rmse)
+		} else if(metric == 'auc') {
+			return(auc)
+		} else if(metric == 'mse') {
+			return(mse)
+		} else if(metric == 'concordance') {
+			return(concordance)
+		} else if(metric == 'error') {
+			return(error)
+		} else if(metric == 'mae') {
+			return(mae)
+		} else if(metric == 'logloss') {
+			return(logloss)
+		} else if(metric == 'all') {
+			metrics = data.table(accuracy = accuracy, precision = precision, recall = recall, fscore = fscore,
+							auc = auc, concordance = concordance, error = error, logloss = logloss, mae = mae, mse = mse, rmse = rmse)
+			return(metrics)
+		} else {
+			cat('> For classification use metric as:\n')
+			cat('accuracy\nprecision\nrecall\nfscore\nauc\nconordance\nerror\nlogloss\nrmse\nmse\nmae\nall\n')
+			stop('> Invalid metric used')
+		}
+	}
+}
+
+# # == Function to calculate the important features == # #
+# # Parameters
+# X = independent features
+# Y = target dependent variable
+importantFeatures = function(X, Y) {
+	numerics = colnames(X)[which(sapply(X, class) %in%  c('numeric', 'integer'))]
+	categoricals = setdiff(colnames(X), numerics)
+
+	# # Chi-Square Test for Categorical vs Target # #
+	df = copy(X)
+	df = setDF(df)
+	chisq = data.table(feature = character(), p_value = numeric())
+	for(eachVar in categoricals){
+		tab = table(df[, eachVar], Y)
+		chi = chisq.test(tab)
+		chisq = rbind(chisq, data.table(feature = eachVar, p_value = chi$p.value))
+	}
+	chisq[, significant := (p_value <= 0.05)]
+	
+	# # Weight of Evidence and Information Value # #
+	if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
+		install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
+	}
+	important_features = data.frame()
+	for(eachVar in setdiff(colnames(X), numerics)) {
+		options(scipen = 999, digits = 4)
+		IV = as.numeric(IV(X = X[[eachVar]], Y = Y))
+		howgood = attr(IV(X = X[[eachVar]], Y = Y), 'howgood')
+		important_features = rbind(important_features, data.frame(feature = eachVar, IV = IV, howgood = howgood))
+	}
+	important_features = setDT(important_features)
+	setorder(important_features, -IV)
+
+	# # ANOVA - For Continuous and Target variable # #
+	anova = data.table(feature = character(), p_value = numeric())
+	for(eachVar in numerics) {
+		data = cbind(X, Y = Y)
+		formula = as.formula(paste(eachVar, '~ Y'))
+		aov_test = aov(formula, data = data)
+		p_value = summary(aov_test)[[1]][["Pr(>F)"]][1]
+		anova = rbind(anova, data.table(feature = eachVar, p_value = p_value))
+	}
+	anova[, significant := (p_value <= 0.05)]
+	return(list(chisq = chisq, IV = important_features, anova = anova))
+}
