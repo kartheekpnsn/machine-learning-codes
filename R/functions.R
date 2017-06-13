@@ -341,7 +341,7 @@ performance = function(predicted, actual, threshold = 0.5, metric = 'all', optim
 		mse = sum((predicted_probabilities - actual) ** 2)/length(actual)
 		mae = sum(abs(predicted_probabilities - actual))/length(actual)
 		rmse = sqrt(mse)
-		auc = performance(prediction(predict(predicted_probabilities, actual), "auc")
+		auc = performance(prediction(predicted_probabilities, actual), "auc")
 		auc = auc@y.values[[1]]
 		concordance = Concordance(actuals = actual, predictedScores = predicted)
 		logloss = - sum((actual * log(predicted_probabilities)) + ((1 - actual) * log((1 - predicted_probabilities))))/length(actual)
