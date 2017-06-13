@@ -344,7 +344,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		rmse = sqrt(mse)
 		auc = performance(prediction(predicted_probabilities, actual), "auc")
 		auc = auc@y.values[[1]]
-		concordance = Concordance(actuals = actual, predictedScores = predicted)
+		concordance = Concordance(actuals = actual, predictedScores = predicted)$Concordance
 		logloss = - sum((actual * log(predicted_probabilities)) + ((1 - actual) * log((1 - predicted_probabilities))))/length(actual)
 		if(metric == 'accuracy') {
 			return(accuracy)
