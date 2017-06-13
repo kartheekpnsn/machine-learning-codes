@@ -295,7 +295,7 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056) {
 # regression = flag indicating whether it is a regression problem or not
 # plotROC_flag = flag indicating whether to plot ROC flag or not
 # beta = beta value for fbeta score, where if beta value is high - we expect more recall
-performance = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = TRUE, regression = FALSE, plotROC_flag = FALSE, beta = 1) {
+performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = TRUE, regression = FALSE, plotROC_flag = FALSE, beta = 1) {
 	if(length(predicted) != length(actual)) {
 		stop('> Length of Predicted and Actual not matching')
 	}
