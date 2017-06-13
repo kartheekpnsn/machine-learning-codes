@@ -1,11 +1,3 @@
-# # Functions to add
-# concordance
-# roc
-# lift, gain
-# woe
-# binning
-
-
 # # == Function for KMEANS to select optimal K == # #
 # # Parameters
 # dataset = dataset on which the algorithm needs to be applied
