@@ -30,7 +30,7 @@
 
 source('https://raw.githubusercontent.com/kartheekpnsn/machine-learning-codes/master/R/functions.R')
 
-xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, verbose = TRUE, plot = TRUE, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5) {
+xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, verbose = TRUE, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5) {
 	required_packages = c('Matrix', 'xgboost', 'caret', 'MLmetrics', 'InformationValue')
 	if(any(required_packages %in% rownames(installed.packages())) == FALSE) {
 		stop('> To run this we need the following packages: \n', paste(required_packages, collapse = '\n'))
@@ -127,8 +127,107 @@ xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ext
 			return(MultiLogLoss(predicted, Y_test))
 		} else {
 			predicted = predict(xgb_fit, dtest)
-			return(performance_measure(predicted = predicted, actual = Y_test, metric = 'all', beta = 5))
+			return(performance_measure(predicted = predicted, actual = Y_test, metric = 'fscore', beta = 5))
 		}
 	})
 	return(list(params = hyper_params, metric = grid_metric))
+}
+
+# # Similarly once tuned - send the tuned parameters to xgb_fit # #
+xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5) {
+	required_packages = c('Matrix', 'xgboost', 'caret', 'MLmetrics', 'InformationValue')
+	if(any(required_packages %in% rownames(installed.packages())) == FALSE) {
+		stop('> To run this we need the following packages: \n', paste(required_packages, collapse = '\n'))
+	}
+	library(Matrix)
+	library(xgboost)
+	library(caret)
+	library(MLmetrics)
+	library(InformationValue)
+
+	objective = 'binary:logistic'
+
+	# # convert Y to numeric # #
+	Y = as.numeric(as.factor(Y)) - 1
+
+	# # data split # #
+	if(is.null(Y_test) | is.null(X_test)) {
+		if(regression) {
+				eval_metric = 'rmse'
+				objective = 'reg:linear'
+				index = 1:length(Y)
+				index = sample(index, round(length(Y) * 0.75))
+			} else {
+				index = dataSplit(Y, split_ratio = c(0.75))
+				# index = createDataPartition(Y, p = 0.75, list = FALSE)
+			}
+	
+		X_train = X[index$train, ]
+		Y_train = Y[index$train]
+		X_test = X[-index$train, ]
+		Y_test = Y[-index$train]
+	} else {
+		X_train = X
+		Y_train = Y
+		Y_test = as.numeric(as.factor(Y_test)) - 1
+	}
+	# # data preparation - one hot encoding # #
+	train_matrix = sparse.model.matrix( ~. -1, data = X_train)
+	test_matrix = sparse.model.matrix( ~. -1, data = X_test)
+
+	# # form xgb DMatrix # #
+	dtrain = xgb.DMatrix(data = as.matrix(train_matrix), label = Y_train)
+	dtest = xgb.DMatrix(data = as.matrix(test_matrix), label = Y_test)
+
+	# # form watch list # #
+	watchlist = list(train = dtrain, eval = dtest)
+
+	if(multi_class) {
+		eval_metric = "mlogloss"
+		objective = "multi:softprob"
+		num_class = length(unique(Y))
+	}
+
+	if(is.null(extra_params)) {
+		extra_params = list(verbose = FALSE,
+			objective = objective,
+			eval_metric = eval_metric,
+			showsd = TRUE
+		)
+	}
+	if(multi_class) {
+		extra_params = c(extra_params, list(num_class = num_class))
+	}
+	params = c(hyper_params, extra_params)
+	if('nrounds' %in% names(params)) {
+		nrounds = params[['nrounds']]
+	} else {
+		nrounds = 100
+	}
+	xgb_cv_fit = xgb.cv(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+	xgb_fit = xgb.train(data = dtrain, params = params, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+	predicted = predict(xgb_fit, dtest)
+	if(regression) {
+		metric = (sqrt(sum((Y_test - predicted) ** 2)/length(predicted)))
+	} else if(multi_class) {
+		predicted = predict(xgb_fit, dtest)
+		predicted = data.table(matrix(predicted, ncol = num_class, byrow = T))
+		metric = (MultiLogLoss(predicted, Y_test))
+	} else {
+		predicted = predict(xgb_fit, dtest)
+		metric = (performance_measure(predicted = predicted, actual = Y_test, metric = 'all', beta = 5))
+	}
+	return(list(fit = xgb_fit, metric = metric))
+}
+
+# # Similarly once fitted - send the fitted model and new data to xgb_predict # #
+xgb_predict = function(fit, newdata, multi_class = FALSE, class_names) {
+	test_matrix = sparse.model.matrix( ~. -1, data = newdata)
+	dtest = xgb.DMatrix(data = as.matrix(test_matrix))
+	predicted = predict(xgb_fit, dtest)
+	if(multi_class) {
+		predicted = data.table(matrix(predicted, ncol = length(class_names), byrow = T))
+		names(predicted) = class_names
+	}
+	return(predicted)
 }
