@@ -28,6 +28,8 @@
 # parameters tried
 # evaluation metric on test set
 
+source('https://raw.githubusercontent.com/kartheekpnsn/machine-learning-codes/master/R/functions.R')
+
 xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, verbose = TRUE, plot = TRUE, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5) {
 	required_packages = c('Matrix', 'xgboost', 'caret', 'MLmetrics', 'InformationValue')
 	if(any(required_packages %in% rownames(installed.packages())) == FALSE) {
@@ -125,9 +127,8 @@ xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ext
 			return(MultiLogLoss(predicted, Y_test))
 		} else {
 			predicted = predict(xgb_fit, dtest)
-			return(performance_measure(predicted = predicted, actual = Y_test, metric = 'fscore', beta = 5))
+			return(performance_measure(predicted = predicted, actual = Y_test, metric = 'all', beta = 5))
 		}
 	})
 	return(list(params = hyper_params, metric = grid_metric))
 }
-
