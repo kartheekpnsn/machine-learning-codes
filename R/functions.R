@@ -329,22 +329,22 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		library(ROCR)
 		library(InformationValue)
 		if(optimal_threshold) {
-			threshold = optimalCutoff(predictedScores = predicted, actuals = actual, optimiseFor = 'Both')
+			threshold = InformationValue::optimalCutoff(predictedScores = predicted, actuals = actual, optimiseFor = 'Both')
 			print(paste('> Threshold chosen:', threshold))
 		}
 		predicted_probabilities = predicted
 		predicted = as.numeric(predicted >= threshold)
 		accuracy = sum(predicted == actual)/length(actual)
 		error = 1 - accuracy
-		precision = precision(predictedScores = predicted, actuals = actual)
-		recall = sensitivity(predictedScores = predicted, actuals = actual)
+		precision = InformationValue::precision(predictedScores = predicted, actuals = actual)
+		recall = InformationValue::sensitivity(predictedScores = predicted, actuals = actual)
 		fscore = ((1 + (beta ** 2)) * precision * recall)/(((1 + (beta ** 2)) * precision) + recall)
 		mse = sum((predicted_probabilities - actual) ** 2)/length(actual)
 		mae = sum(abs(predicted_probabilities - actual))/length(actual)
 		rmse = sqrt(mse)
-		auc = performance(prediction(predicted_probabilities, actual), "auc")
+		auc = ROCR::performance(prediction(predicted_probabilities, actual), "auc")
 		auc = auc@y.values[[1]]
-		concordance = Concordance(actuals = actual, predictedScores = predicted)$Concordance
+		concordance = InformationValue::Concordance(actuals = actual, predictedScores = predicted)$Concordance
 		logloss = - sum((actual * log(predicted_probabilities)) + ((1 - actual) * log((1 - predicted_probabilities))))/length(actual)
 		if(metric == 'accuracy') {
 			return(accuracy)
