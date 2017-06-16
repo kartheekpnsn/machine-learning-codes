@@ -224,7 +224,7 @@ xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ex
 xgb_predict = function(fit, newdata, multi_class = FALSE, class_names) {
 	test_matrix = sparse.model.matrix( ~. -1, data = newdata)
 	dtest = xgb.DMatrix(data = as.matrix(test_matrix))
-	predicted = predict(xgb_fit, dtest)
+	predicted = predict(fit, dtest)
 	if(multi_class) {
 		predicted = data.table(matrix(predicted, ncol = length(class_names), byrow = T))
 		names(predicted) = class_names
