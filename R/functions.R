@@ -125,7 +125,7 @@ optimalKNN = function(dataset = NULL, testset = NULL, target = "Y", maxK = 10, s
 # beta = a trade off used to give account for precision or recall (more the beta value, more tradeoff given for recall)
 # all = A boolean flag that tells to return all values or just the cutoff value
 # plotROC = A boolean flag that tells to plot an ROC curve or not
-getCutoff = function(probabilities, original, beta = 1, all = TRUE, plotROC = TRUE) {
+getCutoff = function(probabilities, original, beta = 1) {
 	if(length(unique(probabilities)) <= 2) {
 		stop("ERROR: WE NEED PROBABILITIES GIVEN BY THE MODEL TO GET A CUTOFF (paremeter = probabilities)")
 	}
@@ -134,38 +134,16 @@ getCutoff = function(probabilities, original, beta = 1, all = TRUE, plotROC = TR
 	allThresholds = seq(0, 1, 0.01)
 	for(each in allThresholds) {
 		predicted = as.numeric(probabilities >= each)
-		performances = rbind(performances, performance(predicted, original, beta = beta, format = "dataframe"))
+		performances = rbind(performances, performance_measure(predicted = predicted, actual = original, 
+					       beta = beta, metric = 'all', optimal_threshold = FALSE))
 	}
 	# dfCutoff = dataframe with cutoffs and respective thresholds
-	dfCutoff = data.frame(cutoff = allThresholds, tpr = performances$recall, fpr = performances$fpr,
-		fscores = performances$fscore)
+	dfCutoff = data.frame(cutoff = allThresholds, recall = performances$recall, 
+			      precision = performances$precision, fscores = performances$fscore)
 	dfCutoff = dfCutoff[order(dfCutoff$fscores, decreasing = T), ]
 	# fCutoff = final cutoff that is to be selected
 	fCutoff = dfCutoff$cutoff[1]
-	if(plotROC) {
-		if("Metrics" %in% rownames(installed.packages()) == FALSE) {
-			install.packages("Metrics", repos = "http://cran.us.r-project.org/")
-		}
-		library(Metrics)
-		auc = auc(original, probabilities)
-		if("ggplot2" %in% rownames(installed.packages()) == FALSE) {
-			install.packages("ggplot2", repos = "http://cran.us.r-project.org/")
-		}
-		library(ggplot2)
-		d = ggplot(data = performances, aes(x = fpr, y = recall, group = 1))
-		d = d + geom_line(linetype = "dashed")
-		d = d + geom_point(size = 1)
-		d = d + geom_abline(intercept = 0, color = "red")
-		d = d + geom_text(x = 0.8, y = 0.1, label = paste("AUC:", round(auc, 4)))
-		print(d)
-		# plot(performances$fpr, performances$recall, type = "o")
-	}
-	if(all) {
-		return(list(dfCutoff = dfCutoff, fCutoff = fCutoff, performances = performances, auc = auc))
-	}
-	else {
-		return(fCutoff)
-	}
+	return(fCutoff)
 }
 
 # # == Function to calculate similarity measures == # #
@@ -303,11 +281,11 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		mae = sum(abs(predicted - actual))/length(actual)
 		mse = sum((predicted - actual) ** 2)/length(actual)
 		rmse = sqrt(mse)
-		if(metric == 'rmse') {
+		if(metric == 'mae') {
 			return(rmse)
 		} else if(metric == 'mse') {
 			return(mse)
-		} else if (metric == 'mae') {
+		} else if (metric == 'rmse') {
 			return(mae)
 		} else if(metric == 'all') {
 			return(data.table(mae = mae, mse = mse, rmse = rmse))
@@ -318,34 +296,35 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 	} else {
 		actual = as.numeric(as.factor(actual)) - 1
 		if(plotROC_flag) {
-			plotROC(actuals = actual, predictedScores = predicted)
+			library(InformationValue)
+			if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
+				install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
+			}
+			InformationValue::plotROC(actuals = actual, predictedScores = predicted)
 		}
-		if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
-			install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
-		}
-		if("ROCR" %in% rownames(installed.packages()) == FALSE) {
-			install.packages("ROCR", repos = "http://cran.us.r-project.org/")
-		}
-		library(ROCR)
-		library(InformationValue)
 		if(optimal_threshold) {
-			threshold = InformationValue::optimalCutoff(predictedScores = predicted, actuals = actual, optimiseFor = 'Both')
+			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta)
 			print(paste('> Threshold chosen:', threshold))
 		}
 		predicted_probabilities = predicted
 		predicted = as.numeric(predicted >= threshold)
 		accuracy = sum(predicted == actual)/length(actual)
 		error = 1 - accuracy
-		precision = InformationValue::precision(predictedScores = predicted, actuals = actual)
-		recall = InformationValue::sensitivity(predictedScores = predicted, actuals = actual)
+		tp = length(which(predicted == 1 & actual == 1))
+		fp = length(which(predicted == 1 & actual == 0))
+		fn = length(which(predicted == 0 & actual == 1))
+		precision = tp/(tp + fp)
+		recall = tp/(tp + fn)
 		fscore = ((1 + (beta ** 2)) * precision * recall)/(((1 + (beta ** 2)) * precision) + recall)
 		mse = sum((predicted_probabilities - actual) ** 2)/length(actual)
 		mae = sum(abs(predicted_probabilities - actual))/length(actual)
 		rmse = sqrt(mse)
-		auc = ROCR::performance(prediction(predicted_probabilities, actual), "auc")
-		auc = auc@y.values[[1]]
-		concordance = InformationValue::Concordance(actuals = actual, predictedScores = predicted)$Concordance
 		logloss = - sum((actual * log(predicted_probabilities)) + ((1 - actual) * log((1 - predicted_probabilities))))/length(actual)
+		if("Metrics" %in% rownames(installed.packages()) == FALSE) {
+			install.packages("Metrics", repos = "http://cran.us.r-project.org/")
+		}
+		library(Metrics)
+		auc = Metrics::auc(predicted = predicted_probabilities, actual = actual)
 		if(metric == 'accuracy') {
 			return(accuracy)
 		} else if(metric == 'precision') {
@@ -360,8 +339,6 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 			return(auc)
 		} else if(metric == 'mse') {
 			return(mse)
-		} else if(metric == 'concordance') {
-			return(concordance)
 		} else if(metric == 'error') {
 			return(error)
 		} else if(metric == 'mae') {
@@ -370,11 +347,11 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 			return(logloss)
 		} else if(metric == 'all') {
 			metrics = data.table(accuracy = accuracy, precision = precision, recall = recall, fscore = fscore,
-							auc = auc, concordance = concordance, error = error, logloss = logloss, mae = mae, mse = mse, rmse = rmse)
+							auc = auc, error = error, logloss = logloss, mae = mae, mse = mse, rmse = rmse)
 			return(metrics)
 		} else {
 			cat('> For classification use metric as:\n')
-			cat('accuracy\nprecision\nrecall\nfscore\nauc\nconordance\nerror\nlogloss\nrmse\nmse\nmae\nall\n')
+			cat('accuracy\nprecision\nrecall\nfscore\nauc\nerror\nlogloss\nrmse\nmse\nmae\nall\n')
 			stop('> Invalid metric used')
 		}
 	}
