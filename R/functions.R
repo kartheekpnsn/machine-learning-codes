@@ -123,27 +123,34 @@ optimalKNN = function(dataset = NULL, testset = NULL, target = "Y", maxK = 10, s
 # probabilities = output probabilities thrown out of a model on the data
 # original = original 2 class target values (either 0 or 1)
 # beta = a trade off used to give account for precision or recall (more the beta value, more tradeoff given for recall)
-# all = A boolean flag that tells to return all values or just the cutoff value
-# plotROC = A boolean flag that tells to plot an ROC curve or not
-getCutoff = function(probabilities, original, beta = 1) {
-	if(length(unique(probabilities)) <= 2) {
-		stop("ERROR: WE NEED PROBABILITIES GIVEN BY THE MODEL TO GET A CUTOFF (paremeter = probabilities)")
+# how = based on what metric the cutoff should be chosen
+getCutoff = function(probabilities, original, beta = 1, how = 'accuracy') {
+	if(!how %in% c('auc', 'accuracy', 'fscore', 'error')) {
+		stop('> how parameter can have only below values:\nauc\naccuracy\nfscore\nlogloss\nerror')
 	}
-	
-	performances = data.frame()
-	allThresholds = seq(0, 1, 0.01)
-	for(each in allThresholds) {
-		predicted = as.numeric(probabilities >= each)
-		performances = rbind(performances, performance_measure(predicted = predicted, actual = original, 
-					       beta = beta, metric = 'all', optimal_threshold = FALSE))
+	if(length(unique(probabilities)) < 3) {
+		stop('> probabilities parameter only accepts probability values not class values')
 	}
-	# dfCutoff = dataframe with cutoffs and respective thresholds
-	dfCutoff = data.frame(cutoff = allThresholds, recall = performances$recall, 
-			      precision = performances$precision, fscores = performances$fscore)
-	dfCutoff = dfCutoff[order(dfCutoff$fscores, decreasing = T), ]
-	# fCutoff = final cutoff that is to be selected
-	fCutoff = dfCutoff$cutoff[1]
-	return(fCutoff)
+	original = as.numeric(as.factor(original)) - 1
+	cutoffs = seq(0, 1, 0.01)
+	perf = c()
+	for(eachCutoff in cutoffs) {
+		predicted = as.numeric(probabilities >= eachCutoff)
+		if(how == 'accuracy') {
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'accuracy', optimal_threshold = FALSE))
+		} else if(how == 'auc') {
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'auc', optimal_threshold = FALSE))
+		} else if(how == 'error') {
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'error', optimal_threshold = FALSE))
+		} else if(how == 'fscore') {
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'fscore', optimal_threshold = FALSE))
+		}
+	}
+	if(how %in% c('error')) {
+		return(cutoffs[which.min(perf)])
+	} else {
+		return(cutoffs[which.max(perf)])
+	}
 }
 
 # # == Function to calculate similarity measures == # #
@@ -270,10 +277,11 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056) {
 # predicted = predicted probability values
 # metric = what performance metric needs to be calculated
 # optimal_threshold = whether to calculate the optimal threshold or not
+# how = based on what metric the cutoff should be chosen
 # regression = flag indicating whether it is a regression problem or not
 # plotROC_flag = flag indicating whether to plot ROC flag or not
 # beta = beta value for fbeta score, where if beta value is high - we expect more recall
-performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = TRUE, regression = FALSE, plotROC_flag = FALSE, beta = 1) {
+performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = FALSE, how = 'fscore', regression = FALSE, plotROC_flag = FALSE, beta = 1) {
 	if(length(predicted) != length(actual)) {
 		stop('> Length of Predicted and Actual not matching')
 	}
@@ -303,7 +311,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 			InformationValue::plotROC(actuals = actual, predictedScores = predicted)
 		}
 		if(optimal_threshold) {
-			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta)
+			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta, how = how)
 			print(paste('> Threshold chosen:', threshold))
 		}
 		predicted_probabilities = predicted
