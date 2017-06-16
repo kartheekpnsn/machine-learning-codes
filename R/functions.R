@@ -315,7 +315,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		fn = length(which(predicted == 0 & actual == 1))
 		precision = tp/(tp + fp)
 		recall = tp/(tp + fn)
-		fscore = ((1 + (beta ** 2)) * precision * recall)/(((1 + (beta ** 2)) * precision) + recall)
+		fscore = ((1 + (beta ** 2)) * precision * recall)/(((beta ** 2) * precision) + recall)
 		mse = sum((predicted_probabilities - actual) ** 2)/length(actual)
 		mae = sum(abs(predicted_probabilities - actual))/length(actual)
 		rmse = sqrt(mse)
