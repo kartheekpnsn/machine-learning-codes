@@ -134,7 +134,7 @@ xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ext
 }
 
 # # Similarly once tuned - send the tuned parameters to xgb_fit # #
-xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5) {
+xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5, cv = TRUE) {
 	required_packages = c('Matrix', 'xgboost', 'caret', 'MLmetrics', 'InformationValue')
 	if(any(required_packages %in% rownames(installed.packages())) == FALSE) {
 		stop('> To run this we need the following packages: \n', paste(required_packages, collapse = '\n'))
@@ -149,12 +149,13 @@ xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ex
 
 	# # convert Y to numeric # #
 	Y = as.numeric(as.factor(Y)) - 1
-
+	if(regression) {
+		eval_metric = 'rmse'
+		objective = 'reg:linear'
+	}
 	# # data split # #
 	if(is.null(Y_test) | is.null(X_test)) {
 		if(regression) {
-				eval_metric = 'rmse'
-				objective = 'reg:linear'
 				index = 1:length(Y)
 				index = sample(index, round(length(Y) * 0.75))
 			} else {
@@ -204,7 +205,9 @@ xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ex
 	} else {
 		nrounds = 100
 	}
-	xgb_cv_fit = xgb.cv(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+	if(cv) {
+		xgb_cv_fit = xgb.cv(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+	}
 	xgb_fit = xgb.train(data = dtrain, params = params, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
 	predicted = predict(xgb_fit, dtest)
 	if(regression) {
