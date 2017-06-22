@@ -411,3 +411,93 @@ importantFeatures = function(X, Y) {
 	anova[, significant := (p_value <= 0.05)]
 	return(list(chisq = chisq, IV = important_features, anova = anova))
 }
+
+# # == Function to plot the data == # #
+# # Parameters
+# X = independent features (data.frame or data.table)
+# Y = dependent target vector
+# append = text to be appended at the end of the name of the plot while saving
+plot_data = function(X, Y, append = 'plot') {
+	if(any(class(X) != 'data.table')) {
+		library(data.table)
+		X = setDT(X)
+	}
+	dir.create('plots', showWarnings = FALSE)
+	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
+	factors = colnames(Y)[which(sapply(X, class) %in% c('character', 'factor'))]
+	# # for numeric - plot box plot and histogram # #
+	for(eachVar in numerics) {
+		dir.create('plots\\continuous', showWarnings = FALSE)
+		library(gridExtra)
+		library(ggplot2)
+		# # box plot # #
+		subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
+		setnames(subset_data, eachVar, 'Variable')
+		subset_data[, Y := factor(Y)]
+		p1 = ggplot(data = subset_data, aes(x = Y, y = Variable, color = Y)) + geom_boxplot(outlier.color = 'red', alpha = 0.3) +
+				xlab('Target Variable') + ylab(eachVar) + ggtitle(paste0('Box plot for: ', eachVar))
+		# compute lower and upper whiskers
+		ylim1 = boxplot.stats(subset_data[, Variable])$stats[c(1, 5)]
+		# scale y limits based on ylim1
+		p2 = p1 + coord_cartesian(ylim = ylim1 * 1.05) + ggtitle(paste0('Box plot for: ', eachVar, ' (without Outliers)'))
+		p = grid.arrange(grobs = list(p1, p2), ncol = 2)
+		ggsave(paste0('plots\\continuous\\boxplot_', eachVar, '_', append, '.jpg'), p)
+
+		# # histogram # #
+		p = list()
+		ct = 1
+		colors = c('lightblue', 'lightgreen', 'coral', 'darkblue', 'darkgreen', 'darkred')
+		for(eachLevel in unique(subset_data[, Y])) {
+			p[[ct]] = ggplot() + geom_histogram(data = subset_data[Y == eachLevel], 
+										aes(Variable), fill = colors[ct], color = 'grey')
+			ct = ct + 1
+		}
+		p = grid.arrange(grobs = p, ncol = 1)
+		ggsave(paste0('plots\\continuous\\histogram_', eachVar, '_', append, '.jpg'), p)
+	}
+	# # for character - plot stacked barchart # #
+	for(eachVar in factors) {
+		if(length(unique(eachVar)) <= 20) {
+			dir.create('plots\\categorical', showWarnings = FALSE)
+			subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
+			subset_data = subset_data[, .N, .(get(eachVar), Y)]
+			subset_data[, Y := factor(Y)]
+			subset_data$N = as.numeric(subset_data$N)
+			eachLevel = unique(subset_data[, get])
+			values = c()
+			for(each in eachLevel) {
+				values = length(X[[eachVar]][X[[eachVar]] == each])
+				subset_data[get == each, N := (N/values)]
+			}
+			p = ggplot(data = subset_data, aes(x = get, y = N, fill = Y)) + 
+					geom_bar(stat = 'identity') + xlab(eachVar)
+			ggsave(paste0('plots\\categorical\\stacked_barchart_', eachVar, '_', append, '.jpg'), p)
+		}
+	}
+}
+
+
+# # == Function to remove outliers from numerical independent vectors == # #
+# # Parameters
+# X = independent features (data.frame/data.table)
+# Y = dependent target vector
+# na.rm = Flag to indicate whether to remove NA or not
+remove_outliers = function(X, Y, na.rm = TRUE) {
+	if(any(class(X) != 'data.table')) {
+		library(data.table)
+		X = setDT(X)
+	}
+	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
+	for(eachVar in numerics) {
+		for(eachClass in unique(Y)) {
+			x = X[[eachVar]][Y == eachClass]
+			qnt = quantile(x, probs = c(.25, .75), na.rm = na.rm)
+			H = 1.5 * IQR(x, na.rm = na.rm)
+			y = x
+			X[[eachVar]][Y == eachClass][y < (qnt[1] - H)] = (qnt[1] - H)
+			X[[eachVar]][Y == eachClass][y > (qnt[2] + H)] = (qnt[2] + H)
+		}
+	}
+	return(X)
+}
+			
