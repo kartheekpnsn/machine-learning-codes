@@ -494,8 +494,14 @@ remove_outliers = function(X, Y, na.rm = TRUE) {
 			qnt = quantile(x, probs = c(.25, .75), na.rm = na.rm)
 			H = 1.5 * IQR(x, na.rm = na.rm)
 			y = x
-			X[[eachVar]][Y == eachClass][y < (qnt[1] - H)] = (qnt[1] - H)
-			X[[eachVar]][Y == eachClass][y > (qnt[2] + H)] = (qnt[2] + H)
+			if(length(X[[eachVar]][Y == eachClass][y < qnt[1] - H]) > 0) {
+				print(paste0('Removing lower level outliers in: ', eachVar))
+				X[[eachVar]][Y == eachClass][y < (qnt[1] - H)] = (qnt[1] - H)
+			}
+			if(length(X[[eachVar]][Y == eachClass][y > (qnt[2] + H)]) > 0) {
+				print(paste0('Removing top level outliers in: ', eachVar))
+				X[[eachVar]][Y == eachClass][y > (qnt[2] + H)] = (qnt[2] + H)
+			}
 		}
 	}
 	return(X)
