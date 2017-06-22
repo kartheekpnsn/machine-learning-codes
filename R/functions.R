@@ -425,6 +425,7 @@ plot_data = function(X, Y, append = 'plot') {
 	dir.create('plots', showWarnings = FALSE)
 	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
 	factors = colnames(Y)[which(sapply(X, class) %in% c('character', 'factor'))]
+	print(factors)
 	# # for numeric - plot box plot and histogram # #
 	for(eachVar in numerics) {
 		dir.create('plots\\continuous', showWarnings = FALSE)
@@ -449,7 +450,8 @@ plot_data = function(X, Y, append = 'plot') {
 		colors = c('lightblue', 'lightgreen', 'coral', 'darkblue', 'darkgreen', 'darkred')
 		for(eachLevel in unique(subset_data[, Y])) {
 			p[[ct]] = ggplot() + geom_histogram(data = subset_data[Y == eachLevel], 
-										aes(Variable), fill = colors[ct], color = 'grey')
+										aes(Variable), fill = colors[ct], color = 'grey') +
+						xlab(eachVar) + ylab('Frequency') + ggtitle(paste0('For Y = ', eachLevel))
 			ct = ct + 1
 		}
 		p = grid.arrange(grobs = p, ncol = 1)
