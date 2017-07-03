@@ -414,36 +414,40 @@ importantFeatures = function(X, Y) {
 	categoricals = setdiff(colnames(X), numerics)
 	print('Done <==')
 
-	# # Chi-Square Test for Categorical vs Target # #
-	print('==> Starting Chi-Square test')
-	df = copy(X)
-	df = setDF(df)
-	chisq = data.table(feature = character(), p_value = numeric())
-	for(eachVar in categoricals){
-		tab = table(df[, eachVar], Y)
-		chi = chisq.test(tab)
-		chisq = rbind(chisq, data.table(feature = eachVar, p_value = chi$p.value))
-	}
-	chisq[, significant := (p_value <= 0.05)]
-	chisq[, p_value := round(p_value, 5)]
-	print('Done with Chi-Square test')
+	if(length(categoricals) != 0) {
+		# # Chi-Square Test for Categorical vs Target # #
+		print('==> Starting Chi-Square test')
+		df = copy(X)
+		df = setDF(df)
+		chisq = data.table(feature = character(), p_value = numeric())
+		for(eachVar in categoricals){
+			tab = table(df[, eachVar], Y)
+			chi = chisq.test(tab)
+			chisq = rbind(chisq, data.table(feature = eachVar, p_value = chi$p.value))
+		}
+		chisq[, significant := (p_value <= 0.05)]
+		chisq[, p_value := round(p_value, 5)]
+		print('Done with Chi-Square test')
 	
-	# # Weight of Evidence and Information Value # #
-	print('==> Starting WOE and IV')
-	if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
-		install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
+		# # Weight of Evidence and Information Value # #
+		print('==> Starting WOE and IV')
+		if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
+			install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
+		}
+		library(InformationValue)
+		important_features = data.frame()
+		for(eachVar in categoricals) {
+			options(scipen = 999, digits = 4)
+			IV = as.numeric(IV(X = X[[eachVar]], Y = Y))
+			howgood = attr(IV(X = X[[eachVar]], Y = Y), 'howgood')
+			important_features = rbind(important_features, data.frame(feature = eachVar, IV = IV, howgood = howgood))
+		}
+		important_features = setDT(important_features)
+		setorder(important_features, -IV)
+		print('Done with WOE and IV <==')
+	} else {
+		print('==> No Categorical Variables in the data')
 	}
-	library(InformationValue)
-	important_features = data.frame()
-	for(eachVar in setdiff(colnames(X), numerics)) {
-		options(scipen = 999, digits = 4)
-		IV = as.numeric(IV(X = X[[eachVar]], Y = Y))
-		howgood = attr(IV(X = X[[eachVar]], Y = Y), 'howgood')
-		important_features = rbind(important_features, data.frame(feature = eachVar, IV = IV, howgood = howgood))
-	}
-	important_features = setDT(important_features)
-	setorder(important_features, -IV)
-	print('Done with WOE and IV <==')
 
 	# # ANOVA - For Continuous and Target variable # #
 	print('==> Starting with ANOVA')
