@@ -128,9 +128,13 @@ getCutoff = function(probabilities, original, beta = 1, how = 'accuracy') {
 	if(!how %in% c('auc', 'accuracy', 'fscore', 'error')) {
 		stop('> how parameter can have only below values:\nauc\naccuracy\nfscore\nlogloss\nerror')
 	}
+	print('==> Checking if given values are Class values or Probability Values')
 	if(length(unique(probabilities)) < 3) {
 		stop('> probabilities parameter only accepts probability values not class values')
 	}
+	print('Checks passed <==')
+
+	print('==> Start checking all cutoffs')
 	original = as.numeric(as.factor(original)) - 1
 	cutoffs = seq(0, 1, 0.01)
 	perf = c()
@@ -146,6 +150,9 @@ getCutoff = function(probabilities, original, beta = 1, how = 'accuracy') {
 			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'fscore', optimal_threshold = FALSE))
 		}
 	}
+	print('Done with checking <==')
+	print('==> Returning the best cutoff')
+	print('Done <==')
 	if(how %in% c('error')) {
 		return(cutoffs[which.min(perf)])
 	} else {
@@ -184,6 +191,13 @@ similarityMeasure = function(ob1, ob2, measure = "pearson") {
 		ob2 = ob2 - mean(ob2)
 		return(similarityMeasure(ob1, ob2, measure = "cos"))
 	}
+}
+
+# # == Function to calculate mode == # #
+# # Parameters
+# vector - an input categorical vector for which mode has to be found
+mode = function(vector) {
+	return(unique(vector)[which.max(table(vector))])
 }
 
 # # == Function to do min max normalization == # #
@@ -245,30 +259,44 @@ balanceClasses = function(data, target = 'Y', type = 'over', seed = 294056) {
 # target = the original target values based on which the split to happen
 # split_ratio = ratio of split of the data
 # seed = for reproducability
-dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056) {
+dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056, regression = FALSE) {
 	set.seed(seed)
-	if(sum(split_ratio) == 1) {
-		stop('Sum of split_ratio should be less than 1')
+	if(regression) {
+		print('==> Starting split for regression')
+		print('		Note: Since regression the split ratio is defaulted to 75:25')
+		index = 1:length(target)
+		index = sample(index, round(length(target) * 0.75))
+		print('Done <==')
+		return(index)
 	}
-	u_classes = unique(target)
-	index = list()
-	index = c(index, rep(1, length(split_ratio) + 1))
-	for(eachClass in u_classes) {
-		temp_index = which(target == eachClass)
-		temp_index = sample(temp_index)
-		lengths = cumsum(round(length(temp_index) * split_ratio))
-		lengths = c(0, lengths, length(temp_index))
-		for(each in 1:(length(lengths)-1)) {
-			index[[each]] = c(index[[each]], temp_index[(lengths[each] + 1) : lengths[each + 1]])
+	else {
+		print('==> Starting split for classification')
+		if(sum(split_ratio) == 1) {
+			stop('Sum of split_ratio should be less than 1')
 		}
+		u_classes = unique(target)
+		index = list()
+		index = c(index, rep(1, length(split_ratio) + 1))
+		for(eachClass in u_classes) {
+			temp_index = which(target == eachClass)
+			temp_index = sample(temp_index)
+			lengths = cumsum(round(length(temp_index) * split_ratio))
+			lengths = c(0, lengths, length(temp_index))
+			for(each in 1:(length(lengths)-1)) {
+				index[[each]] = c(index[[each]], temp_index[(lengths[each] + 1) : lengths[each + 1]])
+			}
+		}
+		index = lapply(index, function(x) x[2:length(x)])
+		if(length(split_ratio) + 1 == 3) {
+			names(index) = c('train', 'valid', 'test')
+			print('		==> Returning train, valid, test indexes')
+		} else if(length(split_ratio) + 1 == 2) {
+			names(index) = c('train', 'test')
+			print('		==> Returning train, test indexes')
+		}
+		print('Done <==')
+		return(index)
 	}
-	index = lapply(index, function(x) x[2:length(x)])
-	if(length(split_ratio) + 1 == 3) {
-		names(index) = c('train', 'valid', 'test')
-	} else if(length(split_ratio) + 1 == 2) {
-		names(index) = c('train', 'test')
-	}
-	return(index)
 }
 
 # # == Function to calculate the performance measures for the prediction == # #
@@ -282,13 +310,17 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056) {
 # plotROC_flag = flag indicating whether to plot ROC flag or not
 # beta = beta value for fbeta score, where if beta value is high - we expect more recall
 performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = FALSE, how = 'fscore', regression = FALSE, plotROC_flag = FALSE, beta = 1) {
+	print('==> Doing basic checks')
 	if(length(predicted) != length(actual)) {
 		stop('> Length of Predicted and Actual not matching')
 	}
+	print('Done (Passed) <==')
 	if(regression) {
+		print('==> Calculating performance measure for regression')
 		mae = sum(abs(predicted - actual))/length(actual)
 		mse = sum((predicted - actual) ** 2)/length(actual)
 		rmse = sqrt(mse)
+		print('Done <==')
 		if(metric == 'mae') {
 			return(rmse)
 		} else if(metric == 'mse') {
@@ -300,19 +332,23 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		} else {
 			stop('> For regression use metric as "rmse" (or) "mse" (or) "mae" (or) "all"')
 		}
-
 	} else {
+		print('==> Calculating performance measure for classification')
 		actual = as.numeric(as.factor(actual)) - 1
 		if(plotROC_flag) {
+			print('==> Plotting ROC Curve')
 			library(InformationValue)
 			if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
 				install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
 			}
 			InformationValue::plotROC(actuals = actual, predictedScores = predicted)
+			print('Done <==')
 		}
 		if(optimal_threshold) {
+			print('		==> Getting optimal threshold')
 			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta, how = how)
 			print(paste('> Threshold chosen:', threshold))
+			print('		Done <==')
 		}
 		predicted_probabilities = predicted
 		predicted = as.numeric(predicted >= threshold)
@@ -333,6 +369,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		}
 		library(Metrics)
 		auc = Metrics::auc(predicted = predicted_probabilities, actual = actual)
+		print('Done <==')
 		if(metric == 'accuracy') {
 			return(accuracy)
 		} else if(metric == 'precision') {
@@ -370,10 +407,15 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 # X = independent features
 # Y = target dependent variable
 importantFeatures = function(X, Y) {
+	print('==> Getting Numerical columns')
 	numerics = colnames(X)[which(sapply(X, class) %in%  c('numeric', 'integer'))]
+	print('Done <==')
+	print('==> Getting Categorical columns')
 	categoricals = setdiff(colnames(X), numerics)
+	print('Done <==')
 
 	# # Chi-Square Test for Categorical vs Target # #
+	print('==> Starting Chi-Square test')
 	df = copy(X)
 	df = setDF(df)
 	chisq = data.table(feature = character(), p_value = numeric())
@@ -383,8 +425,11 @@ importantFeatures = function(X, Y) {
 		chisq = rbind(chisq, data.table(feature = eachVar, p_value = chi$p.value))
 	}
 	chisq[, significant := (p_value <= 0.05)]
+	chisq[, p_value := round(p_value, 5)]
+	print('Done with Chi-Square test')
 	
 	# # Weight of Evidence and Information Value # #
+	print('==> Starting WOE and IV')
 	if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
 		install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
 	}
@@ -398,8 +443,10 @@ importantFeatures = function(X, Y) {
 	}
 	important_features = setDT(important_features)
 	setorder(important_features, -IV)
+	print('Done with WOE and IV <==')
 
 	# # ANOVA - For Continuous and Target variable # #
+	print('==> Starting with ANOVA')
 	anova = data.table(feature = character(), p_value = numeric())
 	for(eachVar in numerics) {
 		data = cbind(X, Y = Y)
@@ -409,6 +456,11 @@ importantFeatures = function(X, Y) {
 		anova = rbind(anova, data.table(feature = eachVar, p_value = p_value))
 	}
 	anova[, significant := (p_value <= 0.05)]
+	anova[, p_value := round(p_value, 5)]
+	print('Done with ANOVA <==')
+
+	print('==> Returning Outputs')
+	print('Done <==')
 	return(list(chisq = chisq, IV = important_features, anova = anova))
 }
 
@@ -419,22 +471,32 @@ importantFeatures = function(X, Y) {
 # append = text to be appended at the end of the name of the plot while saving
 plot_data = function(X, Y, append = 'plot') {
 	if(any(class(X) != 'data.table')) {
+		print('==> Converting X to Data.table')
 		library(data.table)
 		X = setDT(X)
+		print('Done <==')
 	}
+	print('==> Creating plots directory')
 	dir.create('plots', showWarnings = FALSE)
+	print('Done <==')
+	print('==> Getting Numerical columns')
 	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
+	print('Done <==')
+	print('==> Getting Categorical columns')
 	factors = colnames(Y)[which(sapply(X, class) %in% c('character', 'factor'))]
-	print(factors)
+	print('Done <==')
 	# # for numeric - plot box plot and histogram # #
+	print('==> Running for Numerical columns')
+	dir.create('plots\\continuous', showWarnings = FALSE)
 	for(eachVar in numerics) {
-		dir.create('plots\\continuous', showWarnings = FALSE)
+		print(paste0('		==> For: ', eachVar))
 		library(gridExtra)
 		library(ggplot2)
 		# # box plot # #
 		subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
 		setnames(subset_data, eachVar, 'Variable')
 		subset_data[, Y := factor(Y)]
+		print(paste0('				==> Box plot for: ', eachVar))
 		p1 = ggplot(data = subset_data, aes(x = Y, y = Variable, color = Y)) + geom_boxplot(outlier.color = 'red', alpha = 0.3) +
 				xlab('Target Variable') + ylab(eachVar) + ggtitle(paste0('Box plot for: ', eachVar))
 		# compute lower and upper whiskers
@@ -443,11 +505,12 @@ plot_data = function(X, Y, append = 'plot') {
 		p2 = p1 + coord_cartesian(ylim = ylim1 * 1.05) + ggtitle(paste0('Box plot for: ', eachVar, ' (without Outliers)'))
 		p = grid.arrange(grobs = list(p1, p2), ncol = 2)
 		ggsave(paste0('plots\\continuous\\boxplot_', eachVar, '_', append, '.jpg'), p)
-
+		print('						Done <==')
 		# # histogram # #
 		p = list()
 		ct = 1
 		colors = c('lightblue', 'lightgreen', 'coral', 'darkblue', 'darkgreen', 'darkred')
+		print(paste0('				==> Histogram for: ', eachVar))
 		for(eachLevel in unique(subset_data[, Y])) {
 			p[[ct]] = ggplot() + geom_histogram(data = subset_data[Y == eachLevel], 
 										aes(Variable), fill = colors[ct], color = 'grey') +
@@ -456,11 +519,15 @@ plot_data = function(X, Y, append = 'plot') {
 		}
 		p = grid.arrange(grobs = p, ncol = 1)
 		ggsave(paste0('plots\\continuous\\histogram_', eachVar, '_', append, '.jpg'), p)
+		print('						Done <==')
 	}
+	print('Done with Numerical columns <==')
 	# # for character - plot stacked barchart # #
+	print('==> Running for Categorical columns')
+	dir.create('plots\\categorical', showWarnings = FALSE)
 	for(eachVar in factors) {
-		if(length(unique(eachVar)) <= 20) {
-			dir.create('plots\\categorical', showWarnings = FALSE)
+		if(length(unique(X[[eachVar]])) <= 20) {
+			print(paste0('		==> For: ', eachVar))
 			subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
 			subset_data = subset_data[, .N, .(get(eachVar), Y)]
 			subset_data[, Y := factor(Y)]
@@ -474,8 +541,10 @@ plot_data = function(X, Y, append = 'plot') {
 			p = ggplot(data = subset_data, aes(x = get, y = N, fill = Y)) + 
 					geom_bar(stat = 'identity') + xlab(eachVar)
 			ggsave(paste0('plots\\categorical\\stacked_barchart_', eachVar, '_', append, '.jpg'), p)
+			print(paste0('		Done <=='))
 		}
 	}
+	print('Done with Categorical columns <==')
 }
 
 
@@ -486,11 +555,17 @@ plot_data = function(X, Y, append = 'plot') {
 # na.rm = Flag to indicate whether to remove NA or not
 remove_outliers = function(X, Y, na.rm = TRUE) {
 	if(any(class(X) != 'data.table')) {
+		print('==> Converting X to Data.table')
 		library(data.table)
 		X = setDT(X)
+		print('Done <==')
 	}
+	print('==> Getting numeric columns')
 	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
+	print(paste0('Numeric columns: ', paste0(numerics, collapse = ', ')))
+	print('Done <==')
 	for(eachVar in numerics) {
+		print(paste0('==> Checking for: ', eachVar))
 		for(eachClass in unique(Y)) {
 			x = X[[eachVar]][Y == eachClass]
 			qnt = quantile(x, probs = c(.25, .75), na.rm = na.rm)
@@ -505,7 +580,8 @@ remove_outliers = function(X, Y, na.rm = TRUE) {
 				X[[eachVar]][Y == eachClass][y > (qnt[2] + H)] = (qnt[2] + H)
 			}
 		}
+		print(paste0('Done with: ', eachVar, '<=='))
 	}
+	print('Done <==')
 	return(X)
 }
-			
