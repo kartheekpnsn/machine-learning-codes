@@ -413,7 +413,8 @@ importantFeatures = function(X, Y) {
 	print('==> Getting Categorical columns')
 	categoricals = setdiff(colnames(X), numerics)
 	print('Done <==')
-
+	
+	return_value = list()
 	if(length(categoricals) != 0) {
 		# # Chi-Square Test for Categorical vs Target # #
 		print('==> Starting Chi-Square test')
@@ -445,6 +446,7 @@ importantFeatures = function(X, Y) {
 		important_features = setDT(important_features)
 		setorder(important_features, -IV)
 		print('Done with WOE and IV <==')
+		return_value = c(return_value, list(chisq = chisq, IV = important_features))
 	} else {
 		print('==> No Categorical Variables in the data')
 	}
@@ -465,7 +467,8 @@ importantFeatures = function(X, Y) {
 
 	print('==> Returning Outputs')
 	print('Done <==')
-	return(list(chisq = chisq, IV = important_features, anova = anova))
+	return_value = c(return_value, list(anova = anova))
+	return(return_value)
 }
 
 # # == Function to plot the data == # #
