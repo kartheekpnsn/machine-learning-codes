@@ -455,6 +455,9 @@ importantFeatures = function(X, Y) {
 	cat('\t ==> Starting with ANOVA\n')
 	anova = data.table(feature = character(), p_value = numeric())
 	for(eachVar in numerics) {
+		if(length(unique(X[[eachVar]])) == 1) {
+			cat(paste0('\t \t Removing constant column: ', eachVar, '\n'))
+		}
 		data = cbind(X, Y = Y)
 		formula = as.formula(paste(eachVar, '~ Y'))
 		aov_test = aov(formula, data = data)
