@@ -474,6 +474,31 @@ importantFeatures = function(X, Y) {
 	return(return_value)
 }
 
+# # == Function to drop constant columns in the data == # #
+# # Parameters
+# data = input data
+drop_const_cols = function(data) {
+	if(any(class(data) != 'data.table')) {
+		cat('==> Converting data to Data.table\n')
+		library(data.table)
+		data = setDT(data)
+		cat('Done <==\n')
+	}
+
+	flags = apply(data,  2 , function(x)
+		all(x == x[1], na.rm = TRUE)
+	)
+
+	cat(paste0('==> Dropped ', length(which(flags)), ' columns\n'))
+	
+	if(length(which(flags)) > 0) {
+		cat(paste0('==> Dropped: ', paste0(colnames(data)[which(flags)], collapse = ', ')), '\n')
+		return(data[, !colnames(data)[which(flags)], with = FALSE])
+	} else {
+		return(data)
+	}
+}
+			
 # # == Function to plot the data == # #
 # # Parameters
 # X = independent features (data.frame or data.table)
