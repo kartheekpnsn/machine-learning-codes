@@ -136,6 +136,7 @@ xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ext
 			verbose_print = params
 			verbose_print$watchlist = NULL
 			cat(data.table(do.call('cbind', verbose_print)))
+			cat('\n')
 		}
 		xgb_fit = xgb.train(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
 		predicted = predict(xgb_fit, dtest)
