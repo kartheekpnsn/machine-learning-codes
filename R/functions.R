@@ -128,13 +128,13 @@ getCutoff = function(probabilities, original, beta = 1, how = 'accuracy') {
 	if(!how %in% c('auc', 'accuracy', 'fscore', 'error')) {
 		stop('> how parameter can have only below values:\nauc\naccuracy\nfscore\nlogloss\nerror')
 	}
-	print('==> Checking if given values are Class values or Probability Values')
+	cat('==> Checking if given values are Class values or Probability Values\n')
 	if(length(unique(probabilities)) < 3) {
 		stop('> probabilities parameter only accepts probability values not class values')
 	}
-	print('Checks passed <==')
+	cat('Checks passed <==\n')
 
-	print('==> Start checking all cutoffs')
+	cat('==> Start checking all cutoffs\n')
 	original = as.numeric(as.factor(original)) - 1
 	cutoffs = seq(0, 1, 0.01)
 	perf = c()
@@ -150,9 +150,9 @@ getCutoff = function(probabilities, original, beta = 1, how = 'accuracy') {
 			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'fscore', optimal_threshold = FALSE))
 		}
 	}
-	print('Done with checking <==')
-	print('==> Returning the best cutoff')
-	print('Done <==')
+	cat('Done with checking <==\n')
+	cat('==> Returning the best cutoff\n')
+	cat('Done <==\n')
 	if(how %in% c('error')) {
 		return(cutoffs[which.min(perf)])
 	} else {
@@ -262,15 +262,15 @@ balanceClasses = function(data, target = 'Y', type = 'over', seed = 294056) {
 dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056, regression = FALSE) {
 	set.seed(seed)
 	if(regression) {
-		print('==> Starting split for regression')
-		print('		Note: Since regression the split ratio is defaulted to 75:25')
+		cat('==> Starting split for regression\n')
+		cat('\t Note: Since regression the split ratio is defaulted to 75:25\n')
 		index = 1:length(target)
 		index = sample(index, round(length(target) * 0.75))
-		print('Done <==')
+		cat('Done <==\n')
 		return(index)
 	}
 	else {
-		print('==> Starting split for classification')
+		cat('==> Starting split for classification\n')
 		if(sum(split_ratio) == 1) {
 			stop('Sum of split_ratio should be less than 1')
 		}
@@ -289,12 +289,12 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056, regressio
 		index = lapply(index, function(x) x[2:length(x)])
 		if(length(split_ratio) + 1 == 3) {
 			names(index) = c('train', 'valid', 'test')
-			print('		==> Returning train, valid, test indexes')
+			cat('\t ==> Returning train, valid, test indexes\n')
 		} else if(length(split_ratio) + 1 == 2) {
 			names(index) = c('train', 'test')
-			print('		==> Returning train, test indexes')
+			cat('\t ==> Returning train, test indexes\n')
 		}
-		print('Done <==')
+		cat('Done <==')
 		return(index)
 	}
 }
@@ -310,17 +310,17 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056, regressio
 # plotROC_flag = flag indicating whether to plot ROC flag or not
 # beta = beta value for fbeta score, where if beta value is high - we expect more recall
 performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = FALSE, how = 'fscore', regression = FALSE, plotROC_flag = FALSE, beta = 1) {
-	print('==> Doing basic checks')
+	cat('==> Doing basic checks\n')
 	if(length(predicted) != length(actual)) {
 		stop('> Length of Predicted and Actual not matching')
 	}
-	print('Done (Passed) <==')
+	cat('Done (Passed) <==\n')
 	if(regression) {
-		print('==> Calculating performance measure for regression')
+		cat('==> Calculating performance measure for regression\n')
 		mae = sum(abs(predicted - actual))/length(actual)
 		mse = sum((predicted - actual) ** 2)/length(actual)
 		rmse = sqrt(mse)
-		print('Done <==')
+		cat('Done <==\n')
 		if(metric == 'mae') {
 			return(rmse)
 		} else if(metric == 'mse') {
@@ -333,22 +333,22 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 			stop('> For regression use metric as "rmse" (or) "mse" (or) "mae" (or) "all"')
 		}
 	} else {
-		print('==> Calculating performance measure for classification')
+		cat('==> Calculating performance measure for classification\n')
 		actual = as.numeric(as.factor(actual)) - 1
 		if(plotROC_flag) {
-			print('==> Plotting ROC Curve')
+			cat('\t ==> Plotting ROC Curve\n')
 			library(InformationValue)
 			if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
 				install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
 			}
 			InformationValue::plotROC(actuals = actual, predictedScores = predicted)
-			print('Done <==')
+			cat('\t Done <==\n')
 		}
 		if(optimal_threshold) {
-			print('		==> Getting optimal threshold')
+			cat('\t ==> Getting optimal threshold\n')
 			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta, how = how)
-			print(paste('> Threshold chosen:', threshold))
-			print('		Done <==')
+			cat(paste('> Threshold chosen:', threshold, '\n'))
+			cat('\t Done <==\n')
 		}
 		predicted_probabilities = predicted
 		predicted = as.numeric(predicted >= threshold)
@@ -369,7 +369,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		}
 		library(Metrics)
 		auc = Metrics::auc(predicted = predicted_probabilities, actual = actual)
-		print('Done <==')
+		cat('Done <==\n')
 		if(metric == 'accuracy') {
 			return(accuracy)
 		} else if(metric == 'precision') {
@@ -407,17 +407,17 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 # X = independent features
 # Y = target dependent variable
 importantFeatures = function(X, Y) {
-	print('==> Getting Numerical columns')
+	cat('==> Getting Numerical columns\n')
 	numerics = colnames(X)[which(sapply(X, class) %in%  c('numeric', 'integer'))]
-	print('Done <==')
-	print('==> Getting Categorical columns')
+	cat('Done <==\n')
+	cat('==> Getting Categorical columns\n')
 	categoricals = setdiff(colnames(X), numerics)
-	print('Done <==')
+	cat('Done <==\n')
 	
 	return_value = list()
 	if(length(categoricals) != 0) {
 		# # Chi-Square Test for Categorical vs Target # #
-		print('==> Starting Chi-Square test')
+		cat('\t ==> Starting Chi-Square test\n')
 		df = copy(X)
 		df = setDF(df)
 		chisq = data.table(feature = character(), p_value = numeric())
@@ -428,10 +428,10 @@ importantFeatures = function(X, Y) {
 		}
 		chisq[, significant := (p_value <= 0.05)]
 		chisq[, p_value := round(p_value, 5)]
-		print('Done with Chi-Square test')
+		cat('\t Done with Chi-Square test <==\n')
 	
 		# # Weight of Evidence and Information Value # #
-		print('==> Starting WOE and IV')
+		cat('\t ==> Starting WOE and IV\n')
 		if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
 			install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
 		}
@@ -445,14 +445,14 @@ importantFeatures = function(X, Y) {
 		}
 		important_features = setDT(important_features)
 		setorder(important_features, -IV)
-		print('Done with WOE and IV <==')
+		cat('\t Done with WOE and IV <==\n')
 		return_value = c(return_value, list(chisq = chisq, IV = important_features))
 	} else {
-		print('==> No Categorical Variables in the data')
+		cat('\t ==> No Categorical Variables in the data\n')
 	}
 
 	# # ANOVA - For Continuous and Target variable # #
-	print('==> Starting with ANOVA')
+	cat('\t ==> Starting with ANOVA\n')
 	anova = data.table(feature = character(), p_value = numeric())
 	for(eachVar in numerics) {
 		data = cbind(X, Y = Y)
@@ -463,10 +463,10 @@ importantFeatures = function(X, Y) {
 	}
 	anova[, significant := (p_value <= 0.05)]
 	anova[, p_value := round(p_value, 5)]
-	print('Done with ANOVA <==')
+	cat('\t Done with ANOVA <==\n')
 
-	print('==> Returning Outputs')
-	print('Done <==')
+	cat('==> Returning Outputs\n')
+	cat('Done <==\n')
 	return_value = c(return_value, list(anova = anova))
 	return(return_value)
 }
@@ -478,32 +478,32 @@ importantFeatures = function(X, Y) {
 # append = text to be appended at the end of the name of the plot while saving
 plot_data = function(X, Y, append = 'plot') {
 	if(any(class(X) != 'data.table')) {
-		print('==> Converting X to Data.table')
+		cat('==> Converting X to Data.table\n')
 		library(data.table)
 		X = setDT(X)
-		print('Done <==')
+		cat('Done <==\n')
 	}
-	print('==> Creating plots directory')
+	cat('\t ==> Creating plots directory\n')
 	dir.create('plots', showWarnings = FALSE)
-	print('Done <==')
-	print('==> Getting Numerical columns')
+	cat('\t Done <==\n')
+	cat('==> Getting Numerical columns\n')
 	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
-	print('Done <==')
-	print('==> Getting Categorical columns')
+	cat('Done <==\n')
+	cat('==> Getting Categorical columns\n')
 	factors = colnames(Y)[which(sapply(X, class) %in% c('character', 'factor'))]
-	print('Done <==')
+	cat('Done <==\n')
 	# # for numeric - plot box plot and histogram # #
-	print('==> Running for Numerical columns')
+	cat('\t ==> Running for Numerical columns\n')
 	dir.create('plots\\continuous', showWarnings = FALSE)
 	for(eachVar in numerics) {
-		print(paste0('		==> For: ', eachVar))
+		cat(paste0('\t \t ==> For: ', eachVar, '\n'))
 		library(gridExtra)
 		library(ggplot2)
 		# # box plot # #
 		subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
 		setnames(subset_data, eachVar, 'Variable')
 		subset_data[, Y := factor(Y)]
-		print(paste0('				==> Box plot for: ', eachVar))
+		cat(paste0('\t \t \t ==> Box plot for: ', eachVar, '\n'))
 		p1 = ggplot(data = subset_data, aes(x = Y, y = Variable, color = Y)) + geom_boxplot(outlier.color = 'red', alpha = 0.3) +
 				xlab('Target Variable') + ylab(eachVar) + ggtitle(paste0('Box plot for: ', eachVar))
 		# compute lower and upper whiskers
@@ -512,12 +512,12 @@ plot_data = function(X, Y, append = 'plot') {
 		p2 = p1 + coord_cartesian(ylim = ylim1 * 1.05) + ggtitle(paste0('Box plot for: ', eachVar, ' (without Outliers)'))
 		p = grid.arrange(grobs = list(p1, p2), ncol = 2)
 		ggsave(paste0('plots\\continuous\\boxplot_', eachVar, '_', append, '.jpg'), p)
-		print('						Done <==')
+		cat('\t \t \t Done <==\n')
 		# # histogram # #
 		p = list()
 		ct = 1
 		colors = c('lightblue', 'lightgreen', 'coral', 'darkblue', 'darkgreen', 'darkred')
-		print(paste0('				==> Histogram for: ', eachVar))
+		cat(paste0('\t \t \t ==> Histogram for: ', eachVar, '\n'))
 		for(eachLevel in unique(subset_data[, Y])) {
 			p[[ct]] = ggplot() + geom_histogram(data = subset_data[Y == eachLevel], 
 										aes(Variable), fill = colors[ct], color = 'grey') +
@@ -526,15 +526,15 @@ plot_data = function(X, Y, append = 'plot') {
 		}
 		p = grid.arrange(grobs = p, ncol = 1)
 		ggsave(paste0('plots\\continuous\\histogram_', eachVar, '_', append, '.jpg'), p)
-		print('						Done <==')
+		cat('\t \t \t Done <==\n')
 	}
-	print('Done with Numerical columns <==')
+	cat('\t Done with Numerical columns <==\n')
 	# # for character - plot stacked barchart # #
-	print('==> Running for Categorical columns')
+	cat('\t ==> Running for Categorical columns\n')
 	dir.create('plots\\categorical', showWarnings = FALSE)
 	for(eachVar in factors) {
 		if(length(unique(X[[eachVar]])) <= 20) {
-			print(paste0('		==> For: ', eachVar))
+			cat(paste0('\t \t ==> For: ', eachVar, '\n'))
 			subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
 			subset_data = subset_data[, .N, .(get(eachVar), Y)]
 			subset_data[, Y := factor(Y)]
@@ -548,10 +548,10 @@ plot_data = function(X, Y, append = 'plot') {
 			p = ggplot(data = subset_data, aes(x = get, y = N, fill = Y)) + 
 					geom_bar(stat = 'identity') + xlab(eachVar)
 			ggsave(paste0('plots\\categorical\\stacked_barchart_', eachVar, '_', append, '.jpg'), p)
-			print(paste0('		Done <=='))
+			cat(paste0('\t \t Done <==\n'))
 		}
 	}
-	print('Done with Categorical columns <==')
+	cat('\t Done with Categorical columns <==\n')
 }
 
 
@@ -562,33 +562,33 @@ plot_data = function(X, Y, append = 'plot') {
 # na.rm = Flag to indicate whether to remove NA or not
 remove_outliers = function(X, Y, na.rm = TRUE) {
 	if(any(class(X) != 'data.table')) {
-		print('==> Converting X to Data.table')
+		cat('==> Converting X to Data.table\n')
 		library(data.table)
 		X = setDT(X)
-		print('Done <==')
+		cat('Done <==\n')
 	}
-	print('==> Getting numeric columns')
+	cat('==> Getting numeric columns\n')
 	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
-	print(paste0('Numeric columns: ', paste0(numerics, collapse = ', ')))
-	print('Done <==')
+	cat(paste0('Numeric columns: ', paste0(numerics, collapse = ', '), '\n'))
+	cat('Done <==\n')
 	for(eachVar in numerics) {
-		print(paste0('==> Checking for: ', eachVar))
+		cat(paste0('\t ==> Checking for: ', eachVar, '\n'))
 		for(eachClass in unique(Y)) {
 			x = X[[eachVar]][Y == eachClass]
 			qnt = quantile(x, probs = c(.25, .75), na.rm = na.rm)
 			H = 1.5 * IQR(x, na.rm = na.rm)
 			y = x
 			if(length(X[[eachVar]][Y == eachClass][y < qnt[1] - H]) > 0) {
-				print(paste0('Removing lower level outliers in: ', eachVar))
+				cat(paste0('\t \t Removing lower level outliers in: ', eachVar, '\n'))
 				X[[eachVar]][Y == eachClass][y < (qnt[1] - H)] = (qnt[1] - H)
 			}
 			if(length(X[[eachVar]][Y == eachClass][y > (qnt[2] + H)]) > 0) {
-				print(paste0('Removing top level outliers in: ', eachVar))
+				cat(paste0('\t \t Removing top level outliers in: ', eachVar, '\n'))
 				X[[eachVar]][Y == eachClass][y > (qnt[2] + H)] = (qnt[2] + H)
 			}
 		}
-		print(paste0('Done with: ', eachVar, '<=='))
+		cat(paste0('\t Done with: ', eachVar, '<==\n'))
 	}
-	print('Done <==')
+	cat('Done <==\n')
 	return(X)
 }
