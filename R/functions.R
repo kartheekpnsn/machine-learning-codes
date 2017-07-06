@@ -294,7 +294,7 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056, regressio
 			names(index) = c('train', 'test')
 			cat('\t ==> Returning train, test indexes\n')
 		}
-		cat('Done <==')
+		cat('Done <==\n')
 		return(index)
 	}
 }
