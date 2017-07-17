@@ -588,7 +588,12 @@ plot_data = function(X, Y, append = 'plot') {
 # X = independent features (data.frame/data.table)
 # Y = dependent target vector
 # na.rm = Flag to indicate whether to remove NA or not
-remove_outliers = function(X, Y, na.rm = TRUE) {
+remove_outliers = function(X, na.rm = TRUE) {
+	if(is.vector(X)) {
+		X_copy = X
+		X_temp = data.table(X)
+		X = copy(X_temp)
+	}
 	if(any(class(X) != 'data.table')) {
 		cat('==> Converting X to Data.table\n')
 		library(data.table)
@@ -601,22 +606,24 @@ remove_outliers = function(X, Y, na.rm = TRUE) {
 	cat('Done <==\n')
 	for(eachVar in numerics) {
 		cat(paste0('\t ==> Checking for: ', eachVar, '\n'))
-		for(eachClass in unique(Y)) {
-			x = X[[eachVar]][Y == eachClass]
-			qnt = quantile(x, probs = c(.25, .75), na.rm = na.rm)
-			H = 1.5 * IQR(x, na.rm = na.rm)
-			y = x
-			if(length(X[[eachVar]][Y == eachClass][y < qnt[1] - H]) > 0) {
-				cat(paste0('\t \t Removing lower level outliers in: ', eachVar, '\n'))
-				X[[eachVar]][Y == eachClass][y < (qnt[1] - H)] = (qnt[1] - H)
-			}
-			if(length(X[[eachVar]][Y == eachClass][y > (qnt[2] + H)]) > 0) {
-				cat(paste0('\t \t Removing top level outliers in: ', eachVar, '\n'))
-				X[[eachVar]][Y == eachClass][y > (qnt[2] + H)] = (qnt[2] + H)
-			}
+		x = X[[eachVar]]
+		qnt = quantile(x, probs = c(.25, .75), na.rm = na.rm)
+		H = 1.5 * IQR(x, na.rm = na.rm)
+		y = x
+		if(length(X[[eachVar]][y < qnt[1] - H]) > 0) {
+			cat(paste0('\t \t Capping lower level outliers in: ', eachVar, '\n'))
+			X[[eachVar]][y < (qnt[1] - H)] = (qnt[1] - H)
+		}
+		if(length(X[[eachVar]][y > (qnt[2] + H)]) > 0) {
+			cat(paste0('\t \t Capping top level outliers in: ', eachVar, '\n'))
+			X[[eachVar]][y > (qnt[2] + H)] = (qnt[2] + H)
 		}
 		cat(paste0('\t Done with: ', eachVar, '<==\n'))
 	}
 	cat('Done <==\n')
-	return(X)
+	if(is.vector(X_copy)) {
+		return(X[[colnames(X)]])
+	} else {
+		return(X)
+	}
 }
