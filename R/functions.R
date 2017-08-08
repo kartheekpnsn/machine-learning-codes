@@ -505,7 +505,7 @@ drop_const_cols = function(data) {
 # Y = dependent target vector
 # append = text to be appended at the end of the name of the plot while saving
 plot_data = function(X, Y, append = 'plot') {
-	if(any(class(X) != 'data.table')) {
+	if(!any(class(X) == 'data.table')) {
 		cat('==> Converting X to Data.table\n')
 		library(data.table)
 		X = setDT(X)
@@ -518,7 +518,7 @@ plot_data = function(X, Y, append = 'plot') {
 	numerics = colnames(X)[which(sapply(X, class) %in% c('numeric', 'integer'))]
 	cat('Done <==\n')
 	cat('==> Getting Categorical columns\n')
-	factors = colnames(Y)[which(sapply(X, class) %in% c('character', 'factor'))]
+	factors = colnames(X)[which(sapply(X, class) %in% c('character', 'factor'))]
 	cat('Done <==\n')
 	# # for numeric - plot box plot and histogram # #
 	cat('\t ==> Running for Numerical columns\n')
@@ -561,7 +561,7 @@ plot_data = function(X, Y, append = 'plot') {
 	cat('\t ==> Running for Categorical columns\n')
 	dir.create('plots\\categorical', showWarnings = FALSE)
 	for(eachVar in factors) {
-		if(length(unique(X[[eachVar]])) <= 20) {
+		if(length(unique(X[[eachVar]])) <= 26) {
 			cat(paste0('\t \t ==> For: ', eachVar, '\n'))
 			subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
 			subset_data = subset_data[, .N, .(get(eachVar), Y)]
@@ -583,14 +583,15 @@ plot_data = function(X, Y, append = 'plot') {
 }
 
 
+
 # # == Function to remove outliers from numerical independent vectors == # #
 # # Parameters
 # X = independent features (data.frame/data.table)
 # Y = dependent target vector
 # na.rm = Flag to indicate whether to remove NA or not
 remove_outliers = function(X, na.rm = TRUE) {
+	X_copy = X
 	if(is.vector(X)) {
-		X_copy = X
 		X_temp = data.table(X)
 		X = copy(X_temp)
 	}
