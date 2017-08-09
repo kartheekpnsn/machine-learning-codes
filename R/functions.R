@@ -215,43 +215,21 @@ min_max_norm = function(series, new_min, new_max) {
 # target = depedent value based on which the data is to be balanced
 # type = type of balancing to be done (either over/under/cost sensitive learning)
 # seed = to ensure reproducability
-balanceClasses = function(data, target = 'Y', type = 'over', seed = 294056) {
-	if(target != 'Y') {
-		colnames(data)[which(colnames(data) == target)] = 'Y'
-	}
-	if("ROSE" %in% rownames(installed.packages()) == FALSE) {
-		install.packages("ROSE", repos = "http://cran.us.r-project.org/")
-	}
-	library(ROSE)
-	n_class_values = table(data$Y)
-	n_classes = length(n_class_values)
-	if(type == 'over') {
-		# # oversampling 
-		balanced = ovun.sample(Y ~ ., 
-			data = data, 
-			method = "over", 
-			N = round(max(n_class_values) + sum(max(n_class_values) * runif((n_classes - 1), 0.5, 0.8))), 
-			seed = seed)$data
-	} else if(type == 'under') {
-		# # under sampling
-		balanced = ovun.sample(Y ~ .,
-			data = data,
-			method = "under", 
-			N = round(min(n_class_values) + sum(min(n_class_values) * runif((n_classes - 1), 1.2, 1.5))),
-			seed = seed)$data
-	} else if(type == 'csl') {
-		# # cost sensitive learning
-		balanced = ROSE(Y ~ ., 
-			data = data,
-			seed = seed)$data
-	} else {
-		cat("Use type as one of the following: 'over', 'under', 'csl'\n")
-		cat("'over'\t:\tdoes oversampling\n")
-		cat("'under'\t:\tdoes undersampling\n")
-		cat("'csl'\t:\tdoes cost sensitive learning\n")
-		stop()
-	}
-	return(balanced)
+balanceClasses = function(data, target = 'Y', how = 'smote', seed = 294056, over = 500, under = 100) {
+	set.seed(seed)
+	library(DMwR)
+	data[[target]] = as.factor(data[[target]])
+	# # process
+	# Say the data has 30 0's and 10 1's and over = 500 and under = 200
+	# first it oversamples the minority class (i.e. 1's) to:
+	#	1st Class SMOTE CASES: (10 * (over/100)) = 50
+	#	ORIGINAL CASES: 10
+	#	Total = 10 + (10 * (over/100)) = 60
+	# Now there are 60 1's and 30 0's
+	# second it perfoms this on the majority class (i.e. 0's) to:
+	#	2nd Class SMOTE CASES: (under/100) * SMOTE CASES
+	data = SMOTE(as.formula(paste0(target, ' ~ .')), data = data, perc.over = over, perc.under = under)
+	return(data)
 } 
 
 # # == Function to do a data splitting into train, test and validation sets == # #
@@ -504,7 +482,12 @@ drop_const_cols = function(data) {
 # X = independent features (data.frame or data.table)
 # Y = dependent target vector
 # append = text to be appended at the end of the name of the plot while saving
-plot_data = function(X, Y, append = 'plot') {
+# # == Function to plot the data == # #
+# # Parameters
+# X = independent features (data.frame or data.table)
+# Y = dependent target vector
+# append = text to be appended at the end of the name of the plot while saving
+plot_data = function(X, Y, append = 'plot', scatter_cols = 'all') {
 	if(!any(class(X) == 'data.table')) {
 		cat('==> Converting X to Data.table\n')
 		library(data.table)
@@ -523,10 +506,21 @@ plot_data = function(X, Y, append = 'plot') {
 	# # for numeric - plot box plot and histogram # #
 	cat('\t ==> Running for Numerical columns\n')
 	dir.create('plots\\continuous', showWarnings = FALSE)
+	if(scatter_cols == 'numeric') {
+		scatter_cols = numerics
+	} else if(scatter_cols == 'factor') {
+		scatter_cols = factors
+	} else {
+		scatter_cols = colnames(X)
+	}
+	scatter_matrix_data = cbind(X[, scatter_cols, with = FALSE], target = factor(Y))
+	s = ggpairs(scatter_matrix_data, aes(colour = target, alpha = 0.4), cardinality_threshold = 30)
+	ggsave(paste0('plots\\continuous\\scatter_matrix.jpg'), s)
 	for(eachVar in numerics) {
 		cat(paste0('\t \t ==> For: ', eachVar, '\n'))
 		library(gridExtra)
 		library(ggplot2)
+		library(GGally)
 		# # box plot # #
 		subset_data = cbind(X[, eachVar, with = FALSE], Y = Y)
 		setnames(subset_data, eachVar, 'Variable')
@@ -542,17 +536,9 @@ plot_data = function(X, Y, append = 'plot') {
 		ggsave(paste0('plots\\continuous\\boxplot_', eachVar, '_', append, '.jpg'), p)
 		cat('\t \t \t Done <==\n')
 		# # histogram # #
-		p = list()
-		ct = 1
-		colors = c('lightblue', 'lightgreen', 'coral', 'darkblue', 'darkgreen', 'darkred')
+		colors = c('lightblue', 'coral', 'lightgreen', 'darkblue', 'darkgreen', 'darkred')
 		cat(paste0('\t \t \t ==> Histogram for: ', eachVar, '\n'))
-		for(eachLevel in unique(subset_data[, Y])) {
-			p[[ct]] = ggplot() + geom_histogram(data = subset_data[Y == eachLevel], 
-										aes(Variable), fill = colors[ct], color = 'grey') +
-						xlab(eachVar) + ylab('Frequency') + ggtitle(paste0('For Y = ', eachLevel))
-			ct = ct + 1
-		}
-		p = grid.arrange(grobs = p, ncol = 1)
+		p = ggplot(data = subset_data, aes(Variable, fill = Y)) + geom_histogram(alpha = 0.4, color = 'grey') + scale_fill_manual(values = colors)
 		ggsave(paste0('plots\\continuous\\histogram_', eachVar, '_', append, '.jpg'), p)
 		cat('\t \t \t Done <==\n')
 	}
@@ -581,8 +567,6 @@ plot_data = function(X, Y, append = 'plot') {
 	}
 	cat('\t Done with Categorical columns <==\n')
 }
-
-
 
 # # == Function to remove outliers from numerical independent vectors == # #
 # # Parameters
