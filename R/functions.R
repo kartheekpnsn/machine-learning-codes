@@ -612,3 +612,23 @@ remove_outliers = function(X, na.rm = TRUE) {
 		return(X)
 	}
 }
+
+# # == Function to install required packages == # #
+install_packages = function() {
+	required_packages = c('data.table', 'ggplot2', 'gridExtra', 'h2o', 'xgboost', 'ranger', 'rpart', 'rpart.plot', 'GGally', 'devtools', 'caret', 'class', 'DMwR', 'InformationValue', 'Metrics', 'Matrix', 'MLmetrics', 'devtools', 'catboost', 'lightgbm', 'randomForest', 'e1071', 'mlr', 'klaR')
+
+	to_install = required_packages[which(!required_packages %in% rownames(installed.packages()))]
+
+	for(each in to_install) {
+		if(!each %in% c('lightgbm', 'catboost')) {
+			install.packages(each, repos='http://cran.us.r-project.org')
+		} else if(each == 'catboost') {
+			devtools::install_github('catboost/catboost', subdir = 'catboost/R-package')
+		} else if(each == 'lightgbm') {
+			cat('> Install the lightgbm using below commands in CLI')
+			cat('git clone --recursive https://github.com/Microsoft/LightGBM\n')
+			cat('cd LightGBM/R-package\n')
+			cat('R CMD INSTALL --build . --no-multiarch\n')
+		}
+	}
+}
