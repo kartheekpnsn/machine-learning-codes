@@ -567,6 +567,102 @@ plot_data = function(X, Y, append = 'plot', scatter_cols = 'all') {
 	}
 	cat('\t Done with Categorical columns <==\n')
 }
+			
+# # == Function for plotting simple plot between two variables color coding by target == # #
+# # Parameters
+# data = dataset on which the plots to be plotted
+# c1 = column name 1
+# c2 = column name 2
+# target = target variable name
+simple_pair_plot = function(data, c1 = NULL, c2 = NULL, target = 'Y') {
+	library(ggplot2)
+	library(gridExtra)
+	library(data.table)
+
+	if(any(is.null(c1) | is.null(c2))) {
+		stop('Give Column names in c1 and c2 parameters\n')
+	}
+
+	if(!any(class(data) == 'data.table')) {
+		data = data.table(data)
+	}
+
+	if(!all(c(c1, c2, target) %in% colnames(data))) {
+		stop('Given columns are not present in the data\n')
+	}
+
+	X1 = data[[c1]]
+	X2 = data[[c2]]
+	Y = data[[target]]
+
+	# check whether Y is factor or not
+	if(!is.factor(Y)) {
+		cat('==> Converting Y as factor\n')
+		Y = as.factor(Y)
+		cat('Done <==\n')
+	}
+	colors = c('lightblue', 'coral', 'lightgreen', 'darkblue', 'darkgreen', 'darkred')
+
+	if(class(X1) == 'numeric' & class(X2) == 'numeric') {
+		cat('==> Plotting two numeric columns\n')
+		p = ggplot() + geom_point(aes(x = X1, y = X2, colour = Y)) + scale_fill_manual(values = colors)
+					+ xlab(c1)
+					+ ylab(c2)
+		cat('Done <==\n')
+	} else if(class(X1) %in% c('factor', 'character') & class(X2) %in% c('factor', 'character')) {
+		cat('==> Plotting two categorical columns\n')
+		X1 = factor(X1)
+		X2 = factor(X2)
+		axis = which.max(c(nlevels(X1), nlevels(X2)))
+		p = list()
+		ct = 1
+		if(axis == 1) {
+			for(eachLevel in levels(X1)) {
+				subset_data = data.table(X1 = X2[X1 == eachLevel])
+				subset_data[[target]] = Y[X1 == eachLevel]
+				p[[ct]] = ggplot() + 
+								geom_bar(data = subset_data, aes_string('X1', fill = target), 
+									stat = "count", position = position_dodge()) +
+								xlab(paste0('Subsetted: ', c1, '(level = ', eachLevel, ') & X-axis: ', c2)) +
+								ylab('Count')
+				ct = ct + 1
+			}
+		} else {
+			for(eachLevel in levels(X2)) {
+				subset_data = data.table(X1 = X1[X2 == eachLevel])
+				subset_data[[target]] = Y[X2 == eachLevel]
+				p[[ct]] = ggplot() + 
+								geom_bar(data = subset_data, aes_string('X1', fill = target), 
+									stat = "count", position = position_dodge()) +
+								xlab(paste0('Subsetted: ', c1, '(level = ', eachLevel, ') & X-axis: ', c2)) +
+								ylab('Count')
+				ct = ct + 1
+			}
+		}
+		diff = c()
+		for(i in seq(3, 30, 3)) {
+			diff = c(diff, i - length(p))
+		}
+		nrow = which(diff >= 0 & diff == min(diff[diff >= 0]))
+		p = grid.arrange(grobs = p, ncol = 3, nrow = nrow)
+		cat('Done <==\n')
+	} else if(class(X1) == 'numeric' & class(X2) %in% c('factor', 'character')) {
+		cat('==> Plotting a numeric and categorical columns\n')
+		p = ggplot(data = data, aes(x = X2, y = X1, color = Y)) + 
+				geom_boxplot(outlier.color = 'red', alpha = 0.3) +
+				scale_fill_manual(values = colors) +
+				xlab(c2) + ylab(c1)
+		cat('Done <==\n')
+	} else if(class(X1) %in% c('factor', 'character') & class(X2) == 'numeric') {
+		cat('==> Plotting a numeric and categorical columns\n')
+		p = ggplot(data = data, aes(x = X1, y = X2, color = Y)) + 
+				geom_boxplot(outlier.color = 'red', alpha = 0.3) +
+				scale_fill_manual(values = colors) +
+				xlab(c1) + ylab(c2)
+		cat('Done <==\n')
+	} 
+	return(p)
+}
 
 # # == Function to remove outliers from numerical independent vectors == # #
 # # Parameters
