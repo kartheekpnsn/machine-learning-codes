@@ -618,17 +618,20 @@ install_packages = function() {
 	required_packages = c('data.table', 'ggplot2', 'gridExtra', 'h2o', 'xgboost', 'ranger', 'rpart', 'rpart.plot', 'GGally', 'devtools', 'caret', 'class', 'DMwR', 'InformationValue', 'Metrics', 'Matrix', 'MLmetrics', 'devtools', 'catboost', 'lightgbm', 'randomForest', 'e1071', 'mlr', 'klaR')
 
 	to_install = required_packages[which(!required_packages %in% rownames(installed.packages()))]
-
+	cat(paste0('Installing the following packages: ', paste0(to_install, collapse = ', '), '\n'))
 	for(each in to_install) {
+		cat(paste0('\t==> Installing:', each, '\n'))
 		if(!each %in% c('lightgbm', 'catboost')) {
 			install.packages(each, repos='http://cran.us.r-project.org')
 		} else if(each == 'catboost') {
+			cat('\t\tNote: Catboost install may fail at times\n')
 			devtools::install_github('catboost/catboost', subdir = 'catboost/R-package')
 		} else if(each == 'lightgbm') {
-			cat('> Install the lightgbm using below commands in CLI')
-			cat('git clone --recursive https://github.com/Microsoft/LightGBM\n')
-			cat('cd LightGBM/R-package\n')
-			cat('R CMD INSTALL --build . --no-multiarch\n')
-		}
+			cat('\t\t== # # Install the lightgbm using below commands in CLI # # ==\n')
+			cat('\t\t> git clone --recursive https://github.com/Microsoft/LightGBM\n')
+			cat('\t\t> cd LightGBM/R-package\n')
+			cat('\t\t> R CMD INSTALL --build . --no-multiarch\n')
+		}	
+		cat('\tDone <==\n')
 	}
 }
