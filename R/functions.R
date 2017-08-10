@@ -605,9 +605,9 @@ simple_pair_plot = function(data, c1 = NULL, c2 = NULL, target = 'Y') {
 
 	if(class(X1) == 'numeric' & class(X2) == 'numeric') {
 		cat('==> Plotting two numeric columns\n')
-		p = ggplot() + geom_point(aes(x = X1, y = X2, colour = Y)) + scale_fill_manual(values = colors)
-					+ xlab(c1)
-					+ ylab(c2)
+		p = ggplot() + geom_point(aes(x = X1, y = X2, colour = Y)) + scale_fill_manual(values = colors) +
+					xlab(c1) +
+					ylab(c2)
 		cat('Done <==\n')
 	} else if(class(X1) %in% c('factor', 'character') & class(X2) %in% c('factor', 'character')) {
 		cat('==> Plotting two categorical columns\n')
