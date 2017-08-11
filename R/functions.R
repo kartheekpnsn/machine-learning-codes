@@ -334,7 +334,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 			if(verbose)
 			cat('\t ==> Getting optimal threshold\n')
 			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta, how = how)
-			if(verbose)
+			# if(verbose)
 			cat(paste('> Threshold chosen:', threshold, '\n'))
 			if(verbose)
 			cat('\t Done <==\n')
