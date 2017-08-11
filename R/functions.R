@@ -510,11 +510,13 @@ plot_data = function(X, Y, append = 'plot', scatter_cols = 'all') {
 		scatter_cols = numerics
 	} else if(scatter_cols == 'factor') {
 		scatter_cols = factors
-	} else {
+	} else if(scatter_cols == 'all') {
 		scatter_cols = colnames(X)
 	}
 	scatter_matrix_data = cbind(X[, scatter_cols, with = FALSE], target = factor(Y))
-	s = ggpairs(scatter_matrix_data, aes(colour = target, alpha = 0.4), cardinality_threshold = 30)
+	if(scatter_cols != 'none') {
+		s = ggpairs(scatter_matrix_data, aes(colour = target, alpha = 0.4), cardinality_threshold = 30)
+	}
 	ggsave(paste0('plots\\continuous\\scatter_matrix.jpg'), s)
 	for(eachVar in numerics) {
 		cat(paste0('\t \t ==> For: ', eachVar, '\n'))
@@ -731,3 +733,15 @@ install_packages = function() {
 		cat('\tDone <==\n')
 	}
 }
+	
+# # == Function to replace special characters in names == # #
+# Parameters
+# names: column names of the data
+clean_names = function(names) {
+	names = gsub("[[:punct:]]", "_", names)
+	names = gsub("_+", "_", names)
+	names = gsub('_$', '', names)
+	names = gsub('^_', '', names)
+	return(names)
+}
+
