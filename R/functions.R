@@ -141,13 +141,13 @@ getCutoff = function(probabilities, original, beta = 1, how = 'accuracy') {
 	for(eachCutoff in cutoffs) {
 		predicted = as.numeric(probabilities >= eachCutoff)
 		if(how == 'accuracy') {
-			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'accuracy', optimal_threshold = FALSE))
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'accuracy', optimal_threshold = FALSE, verbose = FALSE))
 		} else if(how == 'auc') {
-			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'auc', optimal_threshold = FALSE))
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'auc', optimal_threshold = FALSE, verbose = FALSE))
 		} else if(how == 'error') {
-			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'error', optimal_threshold = FALSE))
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'error', optimal_threshold = FALSE, verbose = FALSE))
 		} else if(how == 'fscore') {
-			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'fscore', optimal_threshold = FALSE))
+			perf = c(perf, performance_measure(predicted = predicted, actual = original, beta = beta, metric = 'fscore', optimal_threshold = FALSE, verbose = FALSE))
 		}
 	}
 	cat('Done with checking <==\n')
