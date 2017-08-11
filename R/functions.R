@@ -287,17 +287,22 @@ dataSplit = function(target, split_ratio = c(0.7, 0.2), seed = 294056, regressio
 # regression = flag indicating whether it is a regression problem or not
 # plotROC_flag = flag indicating whether to plot ROC flag or not
 # beta = beta value for fbeta score, where if beta value is high - we expect more recall
-performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = FALSE, how = 'fscore', regression = FALSE, plotROC_flag = FALSE, beta = 1) {
+# verbose = whether to print messages or not
+performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all', optimal_threshold = FALSE, how = 'fscore', regression = FALSE, plotROC_flag = FALSE, beta = 1, verbose = TRUE) {
+	if(verbose)
 	cat('==> Doing basic checks\n')
 	if(length(predicted) != length(actual)) {
 		stop('> Length of Predicted and Actual not matching')
 	}
+	if(verbose)
 	cat('Done (Passed) <==\n')
 	if(regression) {
+		if(verbose)
 		cat('==> Calculating performance measure for regression\n')
 		mae = sum(abs(predicted - actual))/length(actual)
 		mse = sum((predicted - actual) ** 2)/length(actual)
 		rmse = sqrt(mse)
+		if(verbose)
 		cat('Done <==\n')
 		if(metric == 'mae') {
 			return(rmse)
@@ -311,21 +316,27 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 			stop('> For regression use metric as "rmse" (or) "mse" (or) "mae" (or) "all"')
 		}
 	} else {
+		if(verbose)
 		cat('==> Calculating performance measure for classification\n')
 		actual = as.numeric(as.factor(actual)) - 1
 		if(plotROC_flag) {
+			if(verbose)
 			cat('\t ==> Plotting ROC Curve\n')
 			library(InformationValue)
 			if("InformationValue" %in% rownames(installed.packages()) == FALSE) {
 				install.packages("InformationValue", repos = "http://cran.us.r-project.org/")
 			}
 			InformationValue::plotROC(actuals = actual, predictedScores = predicted)
+			if(verbose)
 			cat('\t Done <==\n')
 		}
 		if(optimal_threshold) {
+			if(verbose)
 			cat('\t ==> Getting optimal threshold\n')
 			threshold = getCutoff(probabilities = predicted, original = actual, beta = beta, how = how)
+			if(verbose)
 			cat(paste('> Threshold chosen:', threshold, '\n'))
+			if(verbose)
 			cat('\t Done <==\n')
 		}
 		predicted_probabilities = predicted
@@ -347,6 +358,7 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 		}
 		library(Metrics)
 		auc = Metrics::auc(predicted = predicted_probabilities, actual = actual)
+		if(verbose)
 		cat('Done <==\n')
 		if(metric == 'accuracy') {
 			return(accuracy)
@@ -373,7 +385,9 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 							auc = auc, error = error, logloss = logloss, mae = mae, mse = mse, rmse = rmse)
 			return(metrics)
 		} else {
+			if(verbose)
 			cat('> For classification use metric as:\n')
+			if(verbose)
 			cat('accuracy\nprecision\nrecall\nfscore\nauc\nerror\nlogloss\nrmse\nmse\nmae\nall\n')
 			stop('> Invalid metric used')
 		}
@@ -736,7 +750,7 @@ install_packages = function() {
 	
 # # == Function to replace special characters in names == # #
 # Parameters
-# names: column names of the data
+# names = column names of the data
 clean_names = function(names) {
 	names = gsub("[[:punct:]]", "_", names)
 	names = gsub("_+", "_", names)
