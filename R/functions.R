@@ -759,3 +759,21 @@ clean_names = function(names) {
 	return(names)
 }
 
+# # == Function to check factor levels in train and test data == # #
+# Parameters
+# train = train data
+# test = test data
+check_factors = function(train, test) {
+	intersect_cols = intersect(colnames(train), colnames(test))
+	train = train[, intersect_cols, with = FALSE]
+	test = test[, intersect_cols, with = FALSE]
+	print(train[, lapply(.SD, function(x) length(levels(x))), .SDcols = colnames(train)[which(sapply(train, class) == 'factor')]])
+	print(test[, lapply(.SD, function(x) length(levels(x))), .SDcols = colnames(test)[which(sapply(test, class) == 'factor')]])
+}
+
+# # == Function to check missing values and return the flag == # #
+# Parameters
+# data = input data
+check_missing = function(data) {
+	data.table(name = colnames(data), flag = apply(data, 2, function(x) any(is.na(x))))
+}
