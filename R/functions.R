@@ -197,6 +197,8 @@ similarityMeasure = function(ob1, ob2, measure = "pearson") {
 # # Parameters
 # vector - an input categorical vector for which mode has to be found
 mode = function(vector) {
+	vector = vector[!is.na(vector)]
+	vector = vector[vector != '']
 	return(unique(vector)[which.max(table(vector))])
 }
 
@@ -775,5 +777,56 @@ check_factors = function(train, test) {
 # Parameters
 # data = input data
 check_missing = function(data) {
-	data.table(name = colnames(data), flag = apply(data, 2, function(x) any(is.na(x))))
+	class = sapply(data, class)
+	missing_flag = apply(data, 2, function(x) any(is.na(x)))
+	blank_flag = apply(data, 2, function(x) any(x == '', na.rm = T))
+	data.table(name = colnames(data), class, missing_flag, blank_flag)
 }
+
+# # == Function to summarize the data
+# Parameters
+# data = input data
+summarize = function(data) {
+	class = sapply(data, class)
+	# # for numeric/integer
+	numeric_cols = colnames(data)[class %in% c('numeric', 'integer')]
+	min_data = apply(data[, numeric_cols, with = FALSE], 2, min, na.rm = T)
+	max_data = apply(data[, numeric_cols, with = FALSE], 2, max, na.rm = T)
+	mean_data = apply(data[, numeric_cols, with = FALSE], 2, mean, na.rm = T)
+	median_data = apply(data[, numeric_cols, with = FALSE], 2, median, na.rm = T)
+	missing_data = apply(data[, numeric_cols, with = FALSE], 2, function(x) any(is.na(x)))
+	quantile_data = data.table(t(apply(data[, numeric_cols, with = FALSE], 2, function(x) quantile(x, probs = c(0, .25, .5, .75, 1), na.rm = TRUE))))
+	colnames(quantile_data) = c('Q0', 'Q25', 'Q50', 'Q75', 'Q100')
+	outlier_data = data.table(t(apply(data[, numeric_cols, with = FALSE], 2, function(x) {
+						qnt = quantile(x, probs = c(.25, .75), na.rm = T)
+						H = 1.5 * IQR(x, na.rm = T)
+						y = x
+						lower_outlier = FALSE
+						upper_outlier = FALSE
+						if(length(x[y < qnt[1] - H]) > 0) {
+							lower_outlier = TRUE
+						}
+						if(length(x[y > (qnt[2] + H)]) > 0) {
+							upper_outlier = TRUE
+						}
+						return(c(lower_outlier, upper_outlier))
+					})))
+	colnames(outlier_data) = c('lower_outlier', 'upper_outlier')
+	distinct_data = apply(data[, numeric_cols, with = FALSE], 2, function(x) length(unique(x, na.rm = TRUE)))
+	numeric_data = data.table(col_name = numeric_cols, class = 'numeric', min_values = min_data, max_values = max_data, mean_values = mean_data, median_values = median_data, missing_flag = missing_data, n_distinct = distinct_data)
+	numeric_data = cbind(numeric_data, quantile_data, outlier_data)
+	# # for factor
+	# mode
+	# missing_flag
+	# blank_flag
+	# nlevels
+	factor_cols = colnames(data)[class %in% c('character', 'factor')]
+	data[, (factor_cols) := lapply(.SD, as.factor), .SDcols = factor_cols]
+	mode_data = apply(data[, factor_cols, with = FALSE], 2, mode)
+	missing_data = apply(data[, factor_cols, with = FALSE], 2, function(x) any(is.na(x)))
+	blank_data = apply(data[, factor_cols, with = FALSE], 2, function(x) any(x == '', na.rm = T))
+	nlevels_data = apply(data[, factor_cols, with = FALSE], 2, function(x) length(unique(x)))
+	factor_data = data.table(col_name = factor_cols, class = 'factor', mode_values = mode_data, missing_flag = missing_data, blank_flag = blank_data, nlevels = nlevels_data)
+	return(list(numeric_data = numeric_data, factor_data = factor_data))
+}
+
