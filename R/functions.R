@@ -401,11 +401,19 @@ performance_measure = function(predicted, actual, threshold = 0.5, metric = 'all
 # X = independent features
 # Y = target dependent variable
 importantFeatures = function(X, Y) {
+	if(!any(class(X) == 'data.table')) {
+		cat('==> Converting X to Data.table\n')
+		library(data.table)
+		X = setDT(X)
+		cat('Done <==\n')
+	}
+	Y = as.numeric(as.factor(as.character(Y))) - 1
 	cat('==> Getting Numerical columns\n')
 	numerics = colnames(X)[which(sapply(X, class) %in%  c('numeric', 'integer'))]
 	cat('Done <==\n')
 	cat('==> Getting Categorical columns\n')
-	categoricals = setdiff(colnames(X), numerics)
+	categoricals = colnames(X)[which(sapply(X, class) %in%  c('factor', 'character'))]
+	X[, (categoricals) := lapply(.SD, as.factor), .SDcols = categoricals]
 	cat('Done <==\n')
 	
 	return_value = list()
