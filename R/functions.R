@@ -537,11 +537,11 @@ plot_data = function(X, Y, append = 'plot', scatter_cols = 'all') {
 	} else if(scatter_cols == 'all') {
 		scatter_cols = colnames(X)
 	}
-	scatter_matrix_data = cbind(X[, scatter_cols, with = FALSE], target = factor(Y))
 	if(scatter_cols != 'none') {
+		scatter_matrix_data = cbind(X[, scatter_cols, with = FALSE], target = factor(Y))
 		s = ggpairs(scatter_matrix_data, aes(colour = target, alpha = 0.4), cardinality_threshold = 30)
+		ggsave(paste0('plots\\continuous\\scatter_matrix.jpg'), s)
 	}
-	ggsave(paste0('plots\\continuous\\scatter_matrix.jpg'), s)
 	for(eachVar in numerics) {
 		cat(paste0('\t \t ==> For: ', eachVar, '\n'))
 		library(gridExtra)
