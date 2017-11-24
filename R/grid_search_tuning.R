@@ -135,8 +135,8 @@ grid_search_tuning = function(X, Y, X_test = NULL, Y_test = NULL, hyperparameter
 	cat('Done <==\n')
 
 	if(multi_class) {
-		eval_metric = "mlogloss"
-		objective = "multi:softprob"
+		eval_metric = "merror"
+		objective = "multi:softmax"
 		num_class = length(unique(Y))
 	}
 
