@@ -156,7 +156,7 @@ xgb_tune = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ext
 }
 
 # # Similarly once tuned - send the tuned parameters to xgb_fit # #
-xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5, cv = TRUE) {
+xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, extra_params = NULL, multi_class = FALSE, regression = FALSE, eval_metric = 'logloss', nfold = 5, cv = TRUE, early_stopping_round = NULL) {
         required_packages = c('Matrix', 'xgboost', 'caret', 'MLmetrics', 'InformationValue')
         if(any(required_packages %in% rownames(installed.packages())) == FALSE) {
                 stop('> To run this we need the following packages: \n', paste(required_packages, collapse = '\n'))
@@ -224,8 +224,8 @@ xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ex
         cat('Done <==\n')
 
         if(multi_class) {
-                eval_metric = "mlogloss"
-                objective = "multi:softprob"
+                eval_metric = "merror"
+                objective = "multi:softmax"
                 num_class = length(unique(Y))
         }
 
@@ -251,12 +251,20 @@ xgb_train = function(X, Y, X_test = NULL, Y_test = NULL, hyper_params = NULL, ex
         }
         cat('Done <==\n')
         if(cv) {
-        		cat('\t ==> Running XGB CV\n')
-                xgb_cv_fit = xgb.cv(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+		cat('\t ==> Running XGB CV\n')
+                if(is.null(early_stopping_round)) {
+                        xgb_cv_fit = xgb.cv(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+                } else {
+                        xgb_cv_fit = xgb.cv(data = dtrain, params = params, nfold = nfold, nrounds = nrounds, print_every_n = 10, watchlist = watchlist, early_stopping_round = early_stopping_round)
+                }
                 cat('\t Done <==\n')
         }
         cat('==> Fitting XGB Train\n')
-        xgb_fit = xgb.train(data = dtrain, params = params, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+        if(is.null(early_stopping_round)) {
+                xgb_fit = xgb.train(data = dtrain, params = params, nrounds = nrounds, print_every_n = 10, watchlist = watchlist)
+        } else {
+                xgb_fit = xgb.train(data = dtrain, params = params, nrounds = nrounds, print_every_n = 10, watchlist = watchlist, early_stopping_round = 40)
+        }
         cat('<== Done\n')
 
         cat('==> Predict on local test\n')
