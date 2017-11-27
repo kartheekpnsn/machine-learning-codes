@@ -1,6 +1,6 @@
 # Repo name: machine-learning-codes
 ```
-Last updated on: 06JAN2017
+Last updated on: 27NOV2017
 ```
 Some useful machine learning codes that can be reused regularly.
 
@@ -17,4 +17,12 @@ Some useful machine learning codes that can be reused regularly.
 |   +-- useful-codes.R              # some codes that are useful to understand R functionalities
 +-- Python
 |   +-- functions.py                # different functions that are used regularly in daily life
+|   +-- seaborn
+|   |   +-- basic_plots.ipynb
+|   +-- deeplearning
+|   |   +-- code
+|   |   |   +-- tensorflow-basics.ipynb
+|   |   |   +-- keras-basics.ipynb
+|   |   +-- data
+|   |   |   +-- pimas_diabetes.csv
 ```
