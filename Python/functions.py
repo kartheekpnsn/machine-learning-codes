@@ -367,6 +367,49 @@ def feature_selection(X, y, method = 'kbest', model_fit = None):
 		pass
 	return X_new
 
+def modelfit(alg, dtrain, predictors, useTrainCV = True, cv_folds = 5, early_stopping_rounds = 50, metrics = 'logloss', ):
+	from sklearn import cross_validation, metrics
+	if useTrainCV:
+		xgb_param = alg.get_xgb_params()
+		xgtrain = xgb.DMatrix(dtrain[predictors].values, label=dtrain['target'].values)
+		cvresult = xgb.cv(xgb_param, xgtrain, num_boost_round=alg.get_params()['n_estimators'], nfold=cv_folds,
+			metrics=metrics, early_stopping_rounds=early_stopping_rounds, verbose_eval=True)
+		alg.set_params(n_estimators=cvresult.shape[0])
+
+	# Fit the algorithm on the data
+	alg.fit(dtrain[predictors], dtrain['target'], eval_metric='mlogloss')
+        
+	#Predict training set:
+	dtrain_predictions = alg.predict(dtrain[predictors])
+        
+	#Print model report:
+	print "\nModel Report"
+	print "Accuracy : %.4g" % metrics.accuracy_score(dtrain['target'].values, dtrain_predictions)
+                    
+	feat_imp = pd.Series(alg.get_booster().get_fscore()).sort_values(ascending=False)
+	feat_imp.plot(kind='bar', title='Feature Importances')
+	plt.ylabel('Feature Importance Score')
+
+def gridSearchCV_lgb_clf(train, predictor_variables, target, estimator, params):
+	# Import LightGBM and sklearn LightGBM
+	# import lightgbm as lgb
+	# from lightgbm.sklearn import LGBMClassifier
+	# LGBMClassifier(learning_rate=0.05,
+	#                n_estimators=100,
+	#                max_depth=10,
+	#                num_leaves=32,
+	#                max_bin=264,
+	#                subsample=0.6,
+	#                colsample_bytree=0.8,
+	#                random_state=2017)
+	# param_test = {
+	# 'n_estimators':range(10,101,10)
+	# }
+	gsearch = GridSearchCV(estimator = estimator, param_grid = params, scoring = 'accuracy', iid = False, cv = 5)
+	gsearch.fit(train[predictor_variables], target)
+	print gsearch.best_params_
+	print gsearch.best_score_
+
 # # # === IMPLEMENTATION EXAMPLES === # # #
 
 # # # == DATA PREPARATION == # #
