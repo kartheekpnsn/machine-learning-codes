@@ -118,17 +118,34 @@ By default, k1 has a value of 1.2 in Elasticsearch.
 Using elasticsearch python client
 """"
 from elasticsearch import Elasticsearch
+from elasticsearch import helpers
+
 es = Elasticsearch(
-    hosts="https://elastic:password@localhost:9200/",
+    hosts="https://elastic:_YyiMW1EveNJFQvsa6j=@localhost:9200/",
     ca_certs=False,
     verify_certs=False)
+
+es.ping
 
 if es.indices.exists(index='test_index'):
     es.indices.delete(index='test_index')
 
-for ct, d in enumerate(doc_list):
-    d_dict = {'sentence': d}
-    es.index(index='test_index', id=ct+1, document=d_dict)
+# for ct, d in enumerate(doc_list):
+#     d_dict = {'sentence': d}
+#     es.index(index='test_index', id=ct+1, document=d_dict)
+
+actions = [
+    {
+        "_index": "test_index",
+        "_id": ct+1,
+        "_source": {
+            "sentence": d
+        }
+    }
+    for ct, d in enumerate(doc_list)
+]
+
+helpers.bulk(es, actions)
     
 body = {
     'from': 0,
@@ -181,3 +198,16 @@ else:
   '_source': {'sentence': 'This is a cat'}}]
 """
 
+"""
+Rank BM25 API
+"""
+from rank_bm25 import BM25Okapi
+tokenized_corpus = [doc.lower().split(" ") for doc in doc_list]
+bm25 = BM25Okapi(tokenized_corpus, k1=1.2, b=0.75)
+
+query = "cat dog"
+tokenized_query = query.split(" ")
+doc_scores = bm25.get_scores(tokenized_query)
+doc_scores
+
+bm25.get_top_n(tokenized_query, doc_list, n=10)
